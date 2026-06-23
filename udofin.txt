@@ -1,1 +1,38 @@
-this project is for udofin app
+
+1. Core Framework & Language
+Framework: React Native (Expo)
+Why: Expo (specifically the modern Expo with Continuous Native Generation and Expo Router) significantly speeds up development, handles complex native module configurations automatically, and provides excellent over-the-air (OTA) update capabilities via Expo Application Services (EAS).
+Language: TypeScript (Strict Mode)
+Why: Required by your global rules for type safety. It prevents runtime errors, which is critical for a financial application dealing with loan amounts and user data.
+2. State Management & Data Fetching
+Server State / API Fetching: TanStack Query (React Query)
+Why: Excellent for caching, background syncing, and handling loading/error states. It integrates perfectly with standard REST APIs or Supabase.
+Global Client State: Zustand
+Why: Lightweight, boilerplate-free, and highly performant compared to Redux. Best for storing localized state like UI preferences, multi-step loan application progress, and minimal auth state.
+3. Backend & Database (Aligning with your ecosystem)
+Database & Auth: Supabase
+Why: Since your global rules emphasize Supabase management and you have the Supabase skill, using Supabase for PostgreSQL, Row Level Security (RLS), and Authentication is the most secure and scalable approach.
+Custom Business Logic: Node.js/Express (already in your /backend folder) or GCP Cloud Functions
+
+4. UI/UX & Styling
+Styling Engine: NativeWind (Tailwind CSS for React Native)
+Why: Allows you to write Tailwind classes directly in React Native, keeping styling consistent with your web platform.
+Component Library: react-native-reusables (The React Native equivalent of shadcn/ui)
+Why: Your global rules highly prefer shadcn/ui patterns (copy-pasteable, highly customizable components). This provides accessible, premium UI components (black buttons, #eeeeee backgrounds, Lucide icons) without the bloat of traditional component libraries.
+Icons: Lucide React Native
+Why: Mandated by your global rules. Clean, consistent, and professional (no emojis).
+5. Form Handling & Validation
+Form Management: React Hook Form
+Why: Highly performant, avoids unnecessary re-renders during complex multi-step loan applications.
+Validation schema: Zod
+Why: Integrates seamlessly with React Hook Form and TypeScript to validate complex financial inputs (e.g., PAN card formats, salary numbers) before they hit your backend.
+6. Security & Compliance (Critical for Udofin)
+Secure Storage: expo-secure-store
+Why: To securely store auth tokens, preventing local access to sensitive data.
+Biometrics: expo-local-authentication
+Why: Enable FaceID/TouchID for app entry, acting as an extra security layer for financial data.
+7. Performance & Optimization
+Navigation: Expo Router
+Why: File-based routing brings web-like routing concepts to mobile, making deep linking (e.g., for specific loan offers) trivial and improving bundle splitting.
+Animations: React Native Reanimated
+Why: Runs animations on the UI thread, ensuring smooth 60fps micro-animations that make the app feel premium and "wow" the user.
