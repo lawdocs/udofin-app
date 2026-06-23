@@ -1,80 +1,129 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { ShieldCheck, ArrowRight } from 'lucide-react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withTiming, 
-  withDelay, 
-  withSpring 
-} from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React from 'react';
+import { View, Text, TouchableOpacity, SafeAreaView, StatusBar, StyleSheet, Platform } from 'react-native';
+import { ChevronRight } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 
 export default function WelcomeScreen() {
-  const fadeAnim = useSharedValue(0);
-  const slideAnim = useSharedValue(50);
-
-  useEffect(() => {
-    fadeAnim.value = withTiming(1, { duration: 1000 });
-    slideAnim.value = withSpring(0, { damping: 12, stiffness: 90 });
-  }, []);
-
-  const animatedStyles = useAnimatedStyle(() => {
-    return {
-      opacity: fadeAnim.value,
-      transform: [{ translateY: slideAnim.value }],
-    };
-  });
+  const router = useRouter();
 
   return (
-    <SafeAreaView className="flex-1 bg-[#eeeeee]">
-      <View className="flex-1 px-6 justify-center">
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#E47656" />
+      
+      {/* Main Content Area */}
+      <View style={styles.content}>
         
-        {/* Logo / Header Section */}
-        <Animated.View style={animatedStyles} className="items-center mb-12">
-          <View className="bg-black/5 p-4 rounded-full mb-6">
-            <ShieldCheck size={48} color="#000000" strokeWidth={1.5} />
-          </View>
-          <Text className="text-4xl font-extrabold text-black mb-2 text-center">
-            Udofin
-          </Text>
-          <Text className="text-base text-gray-500 text-center px-4 leading-6">
-            Your trusted financial partner for instant loans and seamless wealth management.
-          </Text>
-        </Animated.View>
+        {/* Logo Container */}
+        <View style={styles.logoContainer}>
+          <Text style={styles.logoText}>U</Text>
+        </View>
 
-        {/* Features / Benefits */}
-        <Animated.View style={[animatedStyles, { marginTop: 20 }]} className="space-y-6 mb-16">
-          {[
-            { title: 'Lightning Fast', desc: 'Get approved in minutes, not days.' },
-            { title: 'Bank-Grade Security', desc: 'Your data is encrypted and secure.' },
-            { title: 'Zero Hidden Fees', desc: 'Transparent pricing, always.' },
-          ].map((feature, idx) => (
-            <View key={idx} className="flex-row items-center bg-white p-4 rounded-2xl shadow-sm">
-              <View className="w-2 h-2 rounded-full bg-black mr-4" />
-              <View>
-                <Text className="text-black font-bold text-lg">{feature.title}</Text>
-                <Text className="text-gray-500 text-sm mt-1">{feature.desc}</Text>
-              </View>
-            </View>
-          ))}
-        </Animated.View>
+        {/* Heading */}
+        <Text style={styles.heading}>
+          Welcome to{'\n'}Udofin
+        </Text>
 
-        {/* Call to Action */}
-        <Animated.View style={animatedStyles} className="mt-auto mb-8">
+        {/* Subtitle */}
+        <Text style={styles.subtitle}>
+          Smart lending built for speed{'\n'}and control. Access your{'\n'}credit instantly.
+        </Text>
+      </View>
+
+      {/* Bottom Button Area */}
+      <View style={styles.buttonArea}>
+        {/* Outer translucent glow/ring */}
+        <View style={styles.buttonOuter}>
+          {/* Inner White Button */}
           <TouchableOpacity 
-            activeOpacity={0.8}
-            className="bg-black py-4 px-6 rounded-full flex-row items-center justify-center shadow-lg"
+            style={styles.buttonInner}
+            activeOpacity={0.9}
+            onPress={() => router.push('/onboarding')}
           >
-            <Text className="text-white font-bold text-lg mr-2">Get Started</Text>
-            <ArrowRight size={20} color="#ffffff" />
+            <Text style={styles.buttonText}>
+              Continue to Dashboard
+            </Text>
+            <ChevronRight color="#E47656" size={22} strokeWidth={3} />
           </TouchableOpacity>
-          <TouchableOpacity className="mt-6 items-center">
-            <Text className="text-gray-600 font-medium">Log in to your account</Text>
-          </TouchableOpacity>
-        </Animated.View>
-
+        </View>
       </View>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#E47656',
+    width: '100%',
+    height: Platform.OS === 'web' ? '100vh' : '100%',
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    width: '100%',
+  },
+  logoContainer: {
+    width: 110,
+    height: 110,
+    backgroundColor: '#F4F4F4',
+    borderRadius: 34,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  logoText: {
+    color: '#000',
+    fontWeight: '900',
+    fontSize: 64,
+    letterSpacing: -2,
+    marginTop: -8,
+  },
+  heading: {
+    color: '#FFF',
+    fontSize: 42,
+    fontWeight: '800',
+    textAlign: 'center',
+    lineHeight: 48,
+    marginBottom: 20,
+    letterSpacing: -1,
+  },
+  subtitle: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 18,
+    textAlign: 'center',
+    lineHeight: 28,
+    fontWeight: '500',
+    paddingHorizontal: 16,
+  },
+  buttonArea: {
+    paddingHorizontal: 24,
+    paddingBottom: 48,
+    width: '100%',
+  },
+  buttonOuter: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    padding: 6,
+    borderRadius: 9999,
+  },
+  buttonInner: {
+    backgroundColor: '#FFF',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    borderRadius: 9999,
+  },
+  buttonText: {
+    color: '#E47656',
+    fontWeight: 'bold',
+    fontSize: 18,
+    marginRight: 4,
+  },
+});
