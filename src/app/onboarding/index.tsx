@@ -1,43 +1,165 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, TextInput, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Check } from 'lucide-react-native';
+import { useOnboardingStore } from '../../store/onboardingStore';
+import { supabase } from '../../lib/supabase';
 
 export default function OnboardingWizard() {
   const router = useRouter();
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
   
-  // Step 1 State
-  const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const { 
+    language, setLanguage, 
+    mobileNumber, setMobileNumber, 
+    email, setEmail, 
+    pin: storePin, setPin: setStorePin 
+  } = useOnboardingStore();
+
   const languages = ['English', 'Hindi', 'Marathi', 'Tamil', 'Telugu'];
 
   // Step 2 State
-  const [mobileNumber, setMobileNumber] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
-
-  // Step 3 State
-  const [email, setEmail] = useState('');
 
   // Step 4 State
   const [pin, setPin] = useState(['', '', '', '']);
   const [confirmPin, setConfirmPin] = useState(['', '', '', '']);
   const [isConfirming, setIsConfirming] = useState(false);
 
-  const handleNext = () => {
-    if (step < 4) {
-      setStep(step + 1);
+  const sendOTP = async () => {
+    console.log(`[sendOTP] Attempting to send OTP to: ${mobileNumber}`);
+    if (mobileNumber.length !== 10) {
+      console.log(`[sendOTP] Invalid mobile number entered: ${mobileNumber}`);
+      Alert.alert('Invalid Number', 'Please enter a valid 10-digit mobile number.');
+      return false;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: '+91' + mobileNumber,
+    });
+    setLoading(false);
+    
+    if (error) {
+      console.log(`[sendOTP] Failed to send OTP to +91${mobileNumber}. Error: ${error.message}`);
+      Alert.alert('Error', error.message);
+      return false;
     } else {
+      console.log(`[sendOTP] Successfully sent OTP to +91${mobileNumber}`);
+      setOtpSent(true);
+      return true;
+    }
+  };
+
+  const verifyOTP = async () => {
+    const otpString = otp.join('');
+    console.log(`[verifyOTP] Attempting to verify OTP: ${otpString} for number: ${mobileNumber}`);
+    if (otpString.length !== 6) {
+      console.log(`[verifyOTP] Invalid OTP length entered: ${otpString}`);
+      Alert.alert('Invalid OTP', 'Please enter the 6-digit code.');
+      return false;
+    }
+    setLoading(true);
+    const { error, data } = await supabase.auth.verifyOtp({
+      phone: '+91' + mobileNumber,
+      token: otpString,
+      type: 'sms',
+    });
+    setLoading(false);
+
+    if (error) {
+      console.log(`[verifyOTP] Verification failed for OTP: ${otpString}. Error: ${error.message}`);
+      Alert.alert('Error', error.message);
+      return false;
+    } else if (data.session) {
+      console.log(`[verifyOTP] Successfully verified OTP: ${otpString} for +91${mobileNumber}`);
+      return true;
+    }
+    console.log(`[verifyOTP] Verification failed: No session returned for OTP: ${otpString}`);
+    return false;
+  };
+
+  const handleNext = async () => {
+    if (step === 2) {
+      if (!otpSent) {
+        // Send OTP
+        await sendOTP();
+        return;
+      } else {
+        // Verify OTP
+        const verified = await verifyOTP();
+        if (!verified) return;
+      }
+    }
+
+    if (step === 4) {
+      const pinString = isConfirming ? confirmPin.join('') : pin.join('');
+      if (pinString.length !== 4 || (!isConfirming && pinString !== confirmPin.join(''))) {
+         if (!isConfirming && pinString.length === 4) {
+            setIsConfirming(true);
+            return;
+         }
+         Alert.alert('Error', 'PINs do not match or are incomplete.');
+         return;
+      }
+      
+      setStorePin(pinString);
+      
+      // Save profile to Supabase
+      setLoading(true);
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user) {
+        const { error } = await supabase.from('profiles').upsert({
+          id: userData.user.id,
+          language,
+          mobile: mobileNumber,
+          email,
+          pin: pinString,
+        });
+        
+        setLoading(false);
+        if (error) {
+          Alert.alert('Error saving profile', error.message);
+          return;
+        }
+      } else {
+        setLoading(false);
+      }
+      
       // Flow complete, go to dashboard
       router.replace('/dashboard');
+      return;
+    }
+
+    if (step < 4) {
+      setStep(step + 1);
     }
   };
 
   const handleBack = () => {
+    if (step === 4 && isConfirming) {
+      setIsConfirming(false);
+      setConfirmPin(['', '', '', '']);
+      return;
+    }
     if (step > 1) {
       setStep(step - 1);
     } else {
       router.back();
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+    });
+    setLoading(false);
+    if (error) {
+      Alert.alert('Error', error.message);
+    } else {
+      handleNext();
     }
   };
 
@@ -50,14 +172,14 @@ export default function OnboardingWizard() {
         {languages.map((lang) => (
           <TouchableOpacity 
             key={lang} 
-            style={[styles.optionCard, selectedLanguage === lang && styles.optionCardSelected]}
-            onPress={() => setSelectedLanguage(lang)}
+            style={[styles.optionCard, language === lang && styles.optionCardSelected]}
+            onPress={() => setLanguage(lang)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.optionText, selectedLanguage === lang && styles.optionTextSelected]}>
+            <Text style={[styles.optionText, language === lang && styles.optionTextSelected]}>
               {lang}
             </Text>
-            {selectedLanguage === lang && (
+            {language === lang && (
               <View style={styles.checkCircle}>
                 <Check color="#FFF" size={16} strokeWidth={3} />
               </View>
@@ -103,6 +225,7 @@ export default function OnboardingWizard() {
                 const newOtp = [...otp];
                 newOtp[index] = val;
                 setOtp(newOtp);
+                // Auto-advance logic could go here
               }}
             />
           ))}
@@ -110,11 +233,11 @@ export default function OnboardingWizard() {
       )}
 
       {!otpSent ? (
-        <TouchableOpacity style={styles.secondaryButton} onPress={() => setOtpSent(true)}>
-          <Text style={styles.secondaryButtonText}>Send OTP</Text>
+        <TouchableOpacity style={styles.secondaryButton} onPress={sendOTP} disabled={loading}>
+          {loading ? <ActivityIndicator color="#E47656" /> : <Text style={styles.secondaryButtonText}>Send OTP</Text>}
         </TouchableOpacity>
       ) : (
-        <TouchableOpacity style={styles.textButton} onPress={() => setOtpSent(false)}>
+        <TouchableOpacity style={styles.textButton} onPress={sendOTP} disabled={loading}>
           <Text style={styles.textButtonText}>Resend Code</Text>
         </TouchableOpacity>
       )}
@@ -126,7 +249,7 @@ export default function OnboardingWizard() {
       <Text style={styles.stepTitle}>Email Verification</Text>
       <Text style={styles.stepSubtitle}>Establish a secure recovery method</Text>
 
-      <TouchableOpacity style={styles.googleButton}>
+      <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn} disabled={loading}>
         <Text style={styles.googleButtonText}>Continue with Google</Text>
       </TouchableOpacity>
 
@@ -189,7 +312,6 @@ export default function OnboardingWizard() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <ChevronLeft color="#333" size={24} />
@@ -200,7 +322,6 @@ export default function OnboardingWizard() {
         <Text style={styles.stepIndicator}>{step} / 4</Text>
       </View>
 
-      {/* Main Content Area */}
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}
@@ -208,12 +329,20 @@ export default function OnboardingWizard() {
         {step === 4 && renderStep4()}
       </ScrollView>
 
-      {/* Footer / Continue Button */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.primaryButton} onPress={handleNext} activeOpacity={0.8}>
-          <Text style={styles.primaryButtonText}>
-            {step === 4 ? 'Complete Setup' : 'Continue'}
-          </Text>
+        <TouchableOpacity 
+          style={[styles.primaryButton, loading && { opacity: 0.7 }]} 
+          onPress={handleNext} 
+          activeOpacity={0.8}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.primaryButtonText}>
+              {step === 4 ? 'Complete Setup' : (step === 2 && !otpSent ? 'Send OTP' : 'Continue')}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -224,7 +353,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    height: Platform.OS === 'web' ? '100vh' : '100%',
+    height: '100%',
   },
   header: {
     flexDirection: 'row',

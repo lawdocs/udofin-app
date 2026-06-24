@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FEF8F4',
-    height: Platform.OS === 'web' ? '100vh' : '100%',
+    height: '100%',
   },
   scrollContent: {
     paddingHorizontal: 24,

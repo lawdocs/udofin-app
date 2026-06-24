@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#E47656',
     width: '100%',
-    height: Platform.OS === 'web' ? '100vh' : '100%',
+    height: '100%',
   },
   content: {
     flex: 1,
