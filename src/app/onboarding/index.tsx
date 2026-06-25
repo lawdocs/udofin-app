@@ -269,8 +269,8 @@ export default function OnboardingWizard() {
         setLoading(false);
       }
       
-      // Flow complete, go to dashboard
-      router.replace('/dashboard');
+      // Flow complete, go to tabs home
+      router.replace('/(tabs)/home');
       return;
     }
 

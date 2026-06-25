@@ -40,7 +40,7 @@ export default function WelcomeScreen() {
             onPress={() => router.push('/onboarding')}
           >
             <Text style={styles.buttonText}>
-              Continue to Dashboard
+              Continue
             </Text>
             <ChevronRight color="#E47656" size={22} strokeWidth={3} />
           </TouchableOpacity>
