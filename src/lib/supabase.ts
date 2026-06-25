@@ -12,8 +12,8 @@ class SafeStorage {
 
   async getItem(key: string) {
     if (Platform.OS === 'web') {
-      if (typeof localStorage !== 'undefined') {
-        return localStorage.getItem(key);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage.getItem(key);
       }
       return null;
     }
@@ -25,8 +25,8 @@ class SafeStorage {
   }
   async setItem(key: string, value: string) {
     if (Platform.OS === 'web') {
-      if (typeof localStorage !== 'undefined') {
-        return localStorage.setItem(key, value);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage.setItem(key, value);
       }
       return;
     }
@@ -38,8 +38,8 @@ class SafeStorage {
   }
   async removeItem(key: string) {
     if (Platform.OS === 'web') {
-      if (typeof localStorage !== 'undefined') {
-        return localStorage.removeItem(key);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage.removeItem(key);
       }
       return;
     }
