@@ -1,42 +1,49 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';;
 import { useRouter } from 'expo-router';
 import Header from '../components/Header';
 import SupportCard from '../components/SupportCard';
 import StatusBadge from '../components/StatusBadge';
 import { useLoanStore } from '../store/loanStore';
 import { ChevronRight, HelpCircle } from 'lucide-react-native';
+import { useTheme } from '../lib/theme';
+import { useTranslation } from '../lib/i18n';
 
 export default function SupportScreen() {
   const router = useRouter();
   const { complaints } = useLoanStore();
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const { t } = useTranslation();
+
   const faqs = [
     {
-      q: 'Does matching affect my CIBIL credit score?',
-      a: 'Applying or checking eligibility on Udofin utilizes a soft pull mechanism which has zero impact on your CIBIL score. Hard inquiries are only executed when finalizing the accepted partner offer.'
+      q: t('Does matching affect my CIBIL credit score?'),
+      a: t('Applying or checking eligibility on Udofin utilizes a soft pull mechanism which has zero impact on your CIBIL score. Hard inquiries are only executed when finalizing the accepted partner offer.')
     },
     {
-      q: 'What is Udofin\'s "No Fund Pooling" policy?',
-      a: 'Udofin strictly conforms to RBI Digital Lending guidelines. The matching loans flow directly from the partner bank\'s treasury to your bank account, and repayments go straight back. Udofin never touches the funds.'
+      q: t('What is Udofin\'s "No Fund Pooling" policy?'),
+      a: t('Udofin strictly conforms to RBI Digital Lending guidelines. The matching loans flow directly from the partner bank\'s treasury to your bank account, and repayments go straight back. Udofin never touches the funds.')
     },
     {
-      q: 'How long does loan disbursement take?',
-      a: 'Disbursements are usually processed within 10 to 15 minutes of executing the digital agreement. Bank delays may occasionally stretch this to a few hours.'
+      q: t('How long does loan disbursement take?'),
+      a: t('Disbursements are usually processed within 10 to 15 minutes of executing the digital agreement. Bank delays may occasionally stretch this to a few hours.')
     }
   ];
 
   const handleLiveChat = () => {
-    Alert.alert('Live Chat', 'Fin AI Advisor chat system is loading...');
+    Alert.alert(t('Live Chat'), t('Fin AI Advisor chat system is loading...'));
   };
 
   const handleCall = () => {
-    Alert.alert('Call Support', 'Dialing helpline: +91 1800 102 3004');
+    Alert.alert(t('Call Support'), t('Dialing helpline: +91 1800 102 3004'));
   };
 
   const handleEmail = () => {
-    Alert.alert('Write Email', 'Opening mail app to write to support@udofin.com');
+    Alert.alert(t('Write Email'), t('Opening mail app to write to support@udofin.com'));
   };
 
   const handleRaiseComplaint = () => {
@@ -45,7 +52,7 @@ export default function SupportScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header title="Customer Support" />
+      <Header title={t("Customer Support")} />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* Support Grid */}
@@ -59,7 +66,7 @@ export default function SupportScreen() {
         {/* Filed Complaints status tracker */}
         {complaints.length > 0 && (
           <View style={styles.complaintsContainer}>
-            <Text style={styles.sectionTitle}>MY GRIEVANCE TICKETS</Text>
+            <Text style={styles.sectionTitle}>{t("MY GRIEVANCE TICKETS")}</Text>
             {complaints.map((ticket) => (
               <TouchableOpacity
                 key={ticket.id}
@@ -69,14 +76,14 @@ export default function SupportScreen() {
               >
                 <View style={styles.ticketRow}>
                   <View>
-                    <Text style={styles.ticketTitle}>{ticket.category}</Text>
+                    <Text style={styles.ticketTitle}>{t(ticket.category)}</Text>
                     <Text style={styles.ticketId}>{ticket.id} • {ticket.date}</Text>
                   </View>
                   <StatusBadge status={ticket.status} />
                 </View>
                 <View style={styles.ticketFooter}>
-                  <Text style={styles.ticketFooterText}>Track ticket status</Text>
-                  <ChevronRight color="#E47656" size={14} />
+                  <Text style={styles.ticketFooterText}>{t("Track ticket status")}</Text>
+                  <ChevronRight color={colors.primary} size={14} />
                 </View>
               </TouchableOpacity>
             ))}
@@ -84,7 +91,7 @@ export default function SupportScreen() {
         )}
 
         {/* FAQs */}
-        <Text style={styles.sectionTitle}>FREQUENTLY ASKED QUESTIONS</Text>
+        <Text style={styles.sectionTitle}>{t("FREQUENTLY ASKED QUESTIONS")}</Text>
         <View style={styles.faqList}>
           {faqs.map((faq, idx) => {
             const isExpanded = expandedFaq === idx;
@@ -98,7 +105,7 @@ export default function SupportScreen() {
                 <View style={styles.faqHeader}>
                   <Text style={styles.faqQuestion}>{faq.q}</Text>
                   <ChevronRight 
-                    color="#6B7280" 
+                    color={colors.textSecondary} 
                     size={16} 
                     style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }}
                   />
@@ -118,10 +125,10 @@ export default function SupportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FEF8F4',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     padding: 20,
@@ -129,7 +136,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 12,
     marginTop: 8,
@@ -138,11 +145,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   ticketItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
     marginBottom: 12,
   },
   ticketRow: {
@@ -150,18 +157,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.divider,
     paddingBottom: 10,
     marginBottom: 10,
   },
   ticketTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#1F2937',
+    color: colors.text,
   },
   ticketId: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: colors.textMuted,
     fontWeight: '600',
     marginTop: 2,
   },
@@ -172,21 +179,21 @@ const styles = StyleSheet.create({
   },
   ticketFooterText: {
     fontSize: 11,
-    color: '#E47656',
+    color: colors.primary,
     fontWeight: '700',
   },
   faqList: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
     paddingHorizontal: 16,
     paddingVertical: 8,
     marginBottom: 20,
   },
   faqItem: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.divider,
     paddingVertical: 14,
   },
   faqHeader: {
@@ -199,18 +206,18 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '700',
-    color: '#374151',
+    color: colors.text,
     lineHeight: 18,
   },
   faqBody: {
     marginTop: 10,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.background,
     padding: 12,
     borderRadius: 10,
   },
   faqAnswer: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     lineHeight: 18,
     fontWeight: '500',
   },

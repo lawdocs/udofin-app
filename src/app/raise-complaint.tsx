@@ -1,34 +1,46 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';;
 import { useRouter } from 'expo-router';
 import Header from '../components/Header';
 import Button from '../components/Button';
 import { useLoanStore } from '../store/loanStore';
+import { useTheme } from '../lib/theme';
+import { useTranslation } from '../lib/i18n';
 
 export default function RaiseComplaintScreen() {
   const router = useRouter();
   const { addComplaint } = useLoanStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const { t } = useTranslation();
   
-  const [category, setCategory] = useState('Disbursal Issues');
+  const categories = [
+    t('Disbursal Issues'),
+    t('Repayment Setup'),
+    t('Auto-debit / eNACH'),
+    t('Technical Glitch'),
+    t('Charges Dispute')
+  ];
+  
+  const [category, setCategory] = useState(categories[0]);
   const [description, setDescription] = useState('');
   const [attaching, setAttaching] = useState(false);
 
-  const categories = ['Disbursal Issues', 'Repayment Setup', 'Auto-debit / eNACH', 'Technical Glitch', 'Charges Dispute'];
-
   const handleSubmit = () => {
     if (description.trim().length < 10) {
-      Alert.alert('Details Required', 'Please provide a clear description of at least 10 characters.');
+      Alert.alert(t('Details Required'), t('Please provide a clear description of at least 10 characters.'));
       return;
     }
 
     const tktId = addComplaint(category, description);
     
     Alert.alert(
-      'Complaint Raised',
-      `Your grievance ticket ${tktId} has been successfully created. We will update you shortly.`,
+      t('Complaint Raised'),
+      t('Your grievance ticket {{id}} has been successfully created. We will update you shortly.').replace('{{id}}', tktId),
       [
         {
-          text: 'OK',
+          text: t('OK'),
           onPress: () => router.back(),
         }
       ]
@@ -37,10 +49,10 @@ export default function RaiseComplaintScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header title="Raise Complaint Ticket" />
+      <Header title={t("Raise Complaint Ticket")} />
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         
-        <Text style={styles.sectionTitle}>SELECT GRIEVANCE CATEGORY</Text>
+        <Text style={styles.sectionTitle}>{t("SELECT GRIEVANCE CATEGORY")}</Text>
         <View style={styles.optionsList}>
           {categories.map((cat) => (
             <TouchableOpacity
@@ -62,10 +74,10 @@ export default function RaiseComplaintScreen() {
           ))}
         </View>
 
-        <Text style={styles.sectionTitle}>COMPLAINT DETAILS</Text>
+        <Text style={styles.sectionTitle}>{t("COMPLAINT DETAILS")}</Text>
         <TextInput
           style={styles.textArea}
-          placeholder="Please explain the issue you are facing in detail (minimum 10 characters)..."
+          placeholder={t("Please explain the issue you are facing in detail (minimum 10 characters)...")}
           multiline
           numberOfLines={6}
           value={description}
@@ -74,36 +86,36 @@ export default function RaiseComplaintScreen() {
           placeholderTextColor="#999"
         />
 
-        <Text style={styles.sectionTitle}>ATTACHMENTS</Text>
+        <Text style={styles.sectionTitle}>{t("ATTACHMENTS")}</Text>
         <TouchableOpacity
           style={styles.attachmentBox}
           onPress={() => {
             setAttaching(true);
             setTimeout(() => {
               setAttaching(false);
-              Alert.alert('Attachment Mocked', 'Document attached successfully.');
+              Alert.alert(t('Attachment Mocked'), t('Document attached successfully.'));
             }, 1000);
           }}
           activeOpacity={0.7}
         >
           <Text style={styles.attachmentText}>
-            {attaching ? 'Opening file manager...' : 'Tap to attach screenshots/documents'}
+            {attaching ? t('Opening file manager...') : t('Tap to attach screenshots/documents')}
           </Text>
         </TouchableOpacity>
 
       </ScrollView>
 
       <View style={styles.footer}>
-        <Button title="Submit Complaint" onPress={handleSubmit} />
+        <Button title={t("Submit Complaint")} onPress={handleSubmit} />
       </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     padding: 24,
@@ -111,7 +123,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 12,
     marginTop: 8,
@@ -124,33 +136,33 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     borderWidth: 1.5,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.surface,
   },
   categoryCardSelected: {
-    borderColor: '#E47656',
-    backgroundColor: '#FFF5F2',
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
   },
   categoryText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#4B5563',
+    color: colors.textSecondary,
   },
   categoryTextSelected: {
-    color: '#E47656',
+    color: colors.primary,
   },
   textArea: {
     borderWidth: 1.5,
-    borderColor: '#EAEAEA',
-    backgroundColor: '#FAFAFA',
+    borderColor: colors.surfaceBorder,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     height: 140,
     fontSize: 14,
-    color: '#1F2937',
+    color: colors.text,
     fontWeight: '600',
     marginBottom: 24,
   },
@@ -159,21 +171,21 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: '#C7C7CC',
+    borderColor: colors.divider,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.surface,
     marginBottom: 30,
   },
   attachmentText: {
-    color: '#E47656',
+    color: colors.primary,
     fontWeight: '700',
     fontSize: 13,
   },
   footer: {
     padding: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopColor: colors.divider,
   },
 });

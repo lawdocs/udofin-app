@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';;
 import Header from '../../components/Header';
 import Button from '../../components/Button';
 import { useLoanStore } from '../../store/loanStore';
 import StatusBadge from '../../components/StatusBadge';
 import { Calculator } from 'lucide-react-native';
+import { useTheme } from '../../lib/theme';
+import { useTranslation } from '../../lib/i18n';
 
 export default function EMIScreen() {
   const { activeLoan } = useLoanStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const { t } = useTranslation();
   
   // Calculator state
   const [calcAmount, setCalcAmount] = useState('100000');
@@ -32,30 +38,30 @@ export default function EMIScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header title="EMI Calculator & Status" />
+      <Header title={t("EMI Calculator & Status")} />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* Active EMI alert if loan active */}
         {activeLoan && (
           <View style={styles.activeEmiCard}>
-            <Text style={styles.sectionTitle}>ACTIVE EMI SUMMARY</Text>
+            <Text style={styles.sectionTitle}>{t("ACTIVE EMI SUMMARY")}</Text>
             <View style={styles.row}>
               <View>
-                <Text style={styles.label}>NEXT EMI AMOUNT</Text>
+                <Text style={styles.label}>{t("NEXT EMI AMOUNT")}</Text>
                 <Text style={styles.value}>₹{activeLoan.nextEmiAmount.toLocaleString('en-IN')}</Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.label}>DUE DATE</Text>
-                <Text style={[styles.value, { color: '#E47656' }]}>{activeLoan.nextEmiDate}</Text>
+                <Text style={styles.label}>{t("DUE DATE")}</Text>
+                <Text style={[styles.value, { color: colors.primary }]}>{activeLoan.nextEmiDate}</Text>
               </View>
             </View>
             <View style={styles.row}>
-              <Text style={styles.statusLabel}>Lender Partner</Text>
+              <Text style={styles.statusLabel}>{t("Lender Partner")}</Text>
               <Text style={styles.statusValue}>{activeLoan.lenderName}</Text>
             </View>
             <View style={[styles.row, { borderBottomWidth: 0, paddingBottom: 0 }]}>
-              <Text style={styles.statusLabel}>Payment Mode</Text>
-              <Text style={styles.statusValue}>Auto-debit (eNACH) Active</Text>
+              <Text style={styles.statusLabel}>{t("Payment Mode")}</Text>
+              <Text style={styles.statusValue}>{t("Auto-debit (eNACH) Active")}</Text>
             </View>
           </View>
         )}
@@ -63,50 +69,53 @@ export default function EMIScreen() {
         {/* EMI Calculator */}
         <View style={styles.calculatorCard}>
           <View style={styles.calcHeader}>
-            <Calculator color="#E47656" size={24} />
-            <Text style={styles.calcTitle}>Loan EMI Calculator</Text>
+            <Calculator color={colors.primary} size={24} />
+            <Text style={styles.calcTitle}>{t("Loan EMI Calculator")}</Text>
           </View>
-          <Text style={styles.calcDesc}>Estimate monthly repayment parameters dynamically.</Text>
+          <Text style={styles.calcDesc}>{t("Estimate monthly repayment parameters dynamically.")}</Text>
 
           <View style={styles.formGroup}>
-            <Text style={styles.inputLabel}>LOAN AMOUNT (₹)</Text>
+            <Text style={styles.inputLabel}>{t("LOAN AMOUNT (₹)")}</Text>
             <TextInput
               style={styles.textInput}
               keyboardType="numeric"
               value={calcAmount}
               onChangeText={setCalcAmount}
+              placeholderTextColor={colors.textMuted}
             />
           </View>
 
           <View style={styles.addressGrid}>
             <View style={[styles.formGroup, { width: '48%' }]}>
-              <Text style={styles.inputLabel}>INTEREST RATE (% p.a.)</Text>
+              <Text style={styles.inputLabel}>{t("INTEREST RATE (% p.a.)")}</Text>
               <TextInput
                 style={styles.textInput}
                 keyboardType="numeric"
                 value={calcInterest}
                 onChangeText={setCalcInterest}
+                placeholderTextColor={colors.textMuted}
               />
             </View>
             <View style={[styles.formGroup, { width: '48%' }]}>
-              <Text style={styles.inputLabel}>TENURE (MONTHS)</Text>
+              <Text style={styles.inputLabel}>{t("TENURE (MONTHS)")}</Text>
               <TextInput
                 style={styles.textInput}
                 keyboardType="numeric"
                 value={calcTenure}
                 onChangeText={setCalcTenure}
+                placeholderTextColor={colors.textMuted}
               />
             </View>
           </View>
 
-          <Button title="Calculate EMI" onPress={calculateEMI} style={{ marginTop: 8 }} />
+          <Button title={t("Calculate EMI")} onPress={calculateEMI} style={{ marginTop: 8 }} />
 
           {calculatedEmi !== null && (
             <View style={styles.resultBox}>
-              <Text style={styles.resultLabel}>ESTIMATED MONTHLY EMI</Text>
+              <Text style={styles.resultLabel}>{t("ESTIMATED MONTHLY EMI")}</Text>
               <Text style={styles.resultVal}>₹{calculatedEmi.toLocaleString('en-IN')}</Text>
               <Text style={styles.resultText}>
-                Total Interest Payable: ₹{Math.round((calculatedEmi * Number(calcTenure)) - Number(calcAmount)).toLocaleString('en-IN')}
+                {t("Total Interest Payable: ₹{{amount}}").replace('{{amount}}', Math.round((calculatedEmi * Number(calcTenure)) - Number(calcAmount)).toLocaleString('en-IN'))}
               </Text>
             </View>
           )}
@@ -117,26 +126,26 @@ export default function EMIScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FEF8F4',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     padding: 20,
   },
   activeEmiCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
     marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     letterSpacing: 1,
     marginBottom: 14,
   },
@@ -145,39 +154,39 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.divider,
     marginBottom: 12,
   },
   label: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     letterSpacing: 0.5,
     marginBottom: 4,
   },
   value: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1F2937',
+    color: colors.text,
   },
   statusLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   statusValue: {
     fontSize: 12,
-    color: '#1F2937',
+    color: colors.text,
     fontWeight: '700',
   },
 
   // Calculator
   calculatorCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
   },
   calcHeader: {
     flexDirection: 'row',
@@ -188,11 +197,11 @@ const styles = StyleSheet.create({
   calcTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1F2937',
+    color: colors.text,
   },
   calcDesc: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginBottom: 20,
     fontWeight: '500',
   },
@@ -202,19 +211,19 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     letterSpacing: 0.5,
     marginBottom: 6,
   },
   textInput: {
     borderWidth: 1.5,
-    borderColor: '#EAEAEA',
-    backgroundColor: '#FAFAFA',
+    borderColor: colors.surfaceBorder,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
     fontSize: 14,
-    color: '#1F2937',
+    color: colors.text,
     fontWeight: '600',
   },
   addressGrid: {
@@ -222,30 +231,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   resultBox: {
-    backgroundColor: '#FFF5F2',
+    backgroundColor: colors.primaryLight,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#FBECE8',
+    borderColor: colors.primaryLight, // Keeping light, or can be primary transparent depending on preference
     marginTop: 20,
     alignItems: 'center',
   },
   resultLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#E47656',
+    color: colors.primary,
     letterSpacing: 0.5,
     marginBottom: 4,
   },
   resultVal: {
     fontSize: 26,
     fontWeight: '900',
-    color: '#E47656',
+    color: colors.primary,
     marginBottom: 4,
   },
   resultText: {
     fontSize: 11,
-    color: '#8A7060',
+    color: colors.textSecondary,
     fontWeight: '600',
   },
 });

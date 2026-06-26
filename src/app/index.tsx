@@ -1,14 +1,20 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, StatusBar, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StatusBar, StyleSheet, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';;
 import { ChevronRight } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../lib/theme';
+import { useTranslation } from '../lib/i18n';
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const { t } = useTranslation();
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#E47656" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
       
       {/* Main Content Area */}
       <View style={styles.content}>
@@ -20,12 +26,12 @@ export default function WelcomeScreen() {
 
         {/* Heading */}
         <Text style={styles.heading}>
-          Welcome to{'\n'}Udofin
+          {t("Welcome to")}{'\n'}Udofin
         </Text>
 
         {/* Subtitle */}
         <Text style={styles.subtitle}>
-          Smart lending built for speed{'\n'}and control. Access your{'\n'}credit instantly.
+          {t("Smart lending built for speed and control. Access your credit instantly.")}
         </Text>
       </View>
 
@@ -40,9 +46,9 @@ export default function WelcomeScreen() {
             onPress={() => router.push('/onboarding')}
           >
             <Text style={styles.buttonText}>
-              Continue
+              {t("Continue")}
             </Text>
-            <ChevronRight color="#E47656" size={22} strokeWidth={3} />
+            <ChevronRight color={colors.primary} size={22} strokeWidth={3} />
           </TouchableOpacity>
         </View>
       </View>
@@ -50,10 +56,10 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E47656',
+    backgroundColor: colors.primary,
     width: '100%',
     height: '100%',
   },
@@ -72,10 +78,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
     elevation: 2,
   },
   logoText: {
@@ -121,9 +124,9 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
   },
   buttonText: {
-    color: '#E47656',
-    fontWeight: 'bold',
-    fontSize: 18,
-    marginRight: 4,
-  },
+    color: colors.primary,
+    fontSize: 20,
+    fontWeight: '700',
+    fontFamily: 'Outfit-Bold',
+  }
 });

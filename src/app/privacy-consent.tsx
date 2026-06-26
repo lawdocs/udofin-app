@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, Switch, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch, Alert, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';;
 import Header from '../components/Header';
 import { Shield, Eye, Lock, RefreshCw } from 'lucide-react-native';
+import { useTheme } from '../lib/theme';
+import { useTranslation } from '../lib/i18n';
 
 export default function PrivacyConsentScreen() {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const { t } = useTranslation();
+
   // DPDP Consent permissions
   const [smsConsent, setSmsConsent] = useState(true);
   const [locationConsent, setLocationConsent] = useState(true);
@@ -12,11 +19,11 @@ export default function PrivacyConsentScreen() {
   const handleSmsToggle = (value: boolean) => {
     if (!value) {
       Alert.alert(
-        'Revoke SMS Consent?',
-        'WARNING: Revoking SMS access will prevent our automated underwriting engine from evaluating credit limits, resulting in a potential reduction of matching lender offers.',
+        t('Revoke SMS Consent?'),
+        t('WARNING: Revoking SMS access will prevent our automated underwriting engine from evaluating credit limits, resulting in a potential reduction of matching lender offers.'),
         [
-          { text: 'Cancel', style: 'cancel', onPress: () => setSmsConsent(true) },
-          { text: 'Revoke Anyway', onPress: () => setSmsConsent(false) },
+          { text: t('Cancel'), style: 'cancel', onPress: () => setSmsConsent(true) },
+          { text: t('Revoke Anyway'), onPress: () => setSmsConsent(false) },
         ]
       );
     } else {
@@ -27,11 +34,11 @@ export default function PrivacyConsentScreen() {
   const handleLocationToggle = (value: boolean) => {
     if (!value) {
       Alert.alert(
-        'Revoke Location Consent?',
-        'Revoking location permissions may require you to upload additional physical address proofs (e.g. rent agreement or utility bills) to satisfy KYC rules.',
+        t('Revoke Location Consent?'),
+        t('Revoking location permissions may require you to upload additional physical address proofs (e.g. rent agreement or utility bills) to satisfy KYC rules.'),
         [
-          { text: 'Cancel', style: 'cancel', onPress: () => setLocationConsent(true) },
-          { text: 'Revoke Anyway', onPress: () => setLocationConsent(false) },
+          { text: t('Cancel'), style: 'cancel', onPress: () => setLocationConsent(true) },
+          { text: t('Revoke Anyway'), onPress: () => setLocationConsent(false) },
         ]
       );
     } else {
@@ -41,35 +48,35 @@ export default function PrivacyConsentScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header title="Consent Dashboard" />
+      <Header title={t("Consent Dashboard")} />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* DPDP Header */}
         <View style={styles.dpdpBanner}>
-          <Shield color="#E47656" size={24} />
+          <Shield color={colors.primary} size={24} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.dpdpTitle}>DPDP Act, 2023 Compliance</Text>
+            <Text style={styles.dpdpTitle}>{t("DPDP Act, 2023 Compliance")}</Text>
             <Text style={styles.dpdpText}>
-              In accordance with the Digital Personal Data Protection Act, you possess full rights to request logs of, restrict, or revoke any authorization parameters.
+              {t("In accordance with the Digital Personal Data Protection Act, you possess full rights to request logs of, restrict, or revoke any authorization parameters.")}
             </Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>MANAGE DATA ACCESS</Text>
+        <Text style={styles.sectionTitle}>{t("MANAGE DATA ACCESS")}</Text>
         <View style={styles.card}>
           {/* SMS */}
           <View style={styles.consentItem}>
             <View style={{ flex: 1, marginRight: 10 }}>
-              <Text style={styles.consentTitle}>Financial SMS Access</Text>
+              <Text style={styles.consentTitle}>{t("Financial SMS Access")}</Text>
               <Text style={styles.consentDesc}>
-                Used by the eligibility engine to calculate income levels from transaction alert messages. We never read personal chat logs.
+                {t("Used by the eligibility engine to calculate income levels from transaction alert messages. We never read personal chat logs.")}
               </Text>
             </View>
             <Switch
               value={smsConsent}
               onValueChange={handleSmsToggle}
-              trackColor={{ false: '#D1D1D6', true: '#FBECE8' }}
-              thumbColor={smsConsent ? '#E47656' : '#FFFFFF'}
+              trackColor={{ false: colors.surfaceBorder, true: colors.primaryBorder }}
+              thumbColor={smsConsent ? colors.primary : colors.surface}
             />
           </View>
 
@@ -78,16 +85,16 @@ export default function PrivacyConsentScreen() {
           {/* Location */}
           <View style={styles.consentItem}>
             <View style={{ flex: 1, marginRight: 10 }}>
-              <Text style={styles.consentTitle}>GPS Proximity Verification</Text>
+              <Text style={styles.consentTitle}>{t("GPS Proximity Verification")}</Text>
               <Text style={styles.consentDesc}>
-                Used to verify your current device coordinates against Aadhaar proof addresses during identity verification checks.
+                {t("Used to verify your current device coordinates against Aadhaar proof addresses during identity verification checks.")}
               </Text>
             </View>
             <Switch
               value={locationConsent}
               onValueChange={handleLocationToggle}
-              trackColor={{ false: '#D1D1D6', true: '#FBECE8' }}
-              thumbColor={locationConsent ? '#E47656' : '#FFFFFF'}
+              trackColor={{ false: colors.surfaceBorder, true: colors.primaryBorder }}
+              thumbColor={locationConsent ? colors.primary : colors.surface}
             />
           </View>
 
@@ -96,35 +103,37 @@ export default function PrivacyConsentScreen() {
           {/* Notifications */}
           <View style={styles.consentItem}>
             <View style={{ flex: 1, marginRight: 10 }}>
-              <Text style={styles.consentTitle}>Push Notifications Alert</Text>
+              <Text style={styles.consentTitle}>{t("Push Notifications Alert")}</Text>
               <Text style={styles.consentDesc}>
-                Allows us to prompt you for EMI repayments, statement availability, and urgent lender redressals.
+                {t("Allows us to prompt you for EMI repayments, statement availability, and urgent lender redressals.")}
               </Text>
             </View>
             <Switch
               value={notificationConsent}
               onValueChange={setNotificationConsent}
-              trackColor={{ false: '#D1D1D6', true: '#FBECE8' }}
-              thumbColor={notificationConsent ? '#E47656' : '#FFFFFF'}
+              trackColor={{ false: colors.surfaceBorder, true: colors.primaryBorder }}
+              thumbColor={notificationConsent ? colors.primary : colors.surface}
             />
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>REGULATORY DOCUMENTATION</Text>
+        <Text style={styles.sectionTitle}>{t("REGULATORY DOCUMENTATION")}</Text>
         <View style={styles.card}>
-          <TouchableOpacity style={styles.docRow} onPress={() => Alert.alert('Privacy Policy', 'Opening Privacy Policy...')}>
-            <Eye color="#6B7280" size={18} />
-            <Text style={styles.docText}>Read full Privacy Policy</Text>
+          <TouchableOpacity style={styles.docRow} onPress={() => Alert.alert(t('Privacy Policy'), t('Opening Privacy Policy...'))}>
+            <Eye color={colors.textSecondary} size={18} />
+            <Text style={styles.docText}>{t("Read full Privacy Policy")}</Text>
           </TouchableOpacity>
           <View style={styles.divider} />
-          <TouchableOpacity style={styles.docRow} onPress={() => Alert.alert('Terms of Service', 'Opening Terms of Service...')}>
-            <Lock color="#6B7280" size={18} />
-            <Text style={styles.docText}>Terms and Conditions</Text>
+          <TouchableOpacity style={styles.docRow} onPress={() => Alert.alert(t('Terms of Service'), t('Opening Terms of Service...'))}>
+            <Lock color={colors.textSecondary} size={18} />
+            <Text style={styles.docText}>{t("Terms and Conditions")}</Text>
           </TouchableOpacity>
         </View>
 
         <Text style={styles.logText}>
-          Last consent log update: Today, {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}. Shared securely under token #UD-{Math.floor(100000 + Math.random() * 900000)}.
+          {t("Last consent log update: Today, {{time}}. Shared securely under token #UD-{{token}}.")
+            .replace('{{time}}', new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }))
+            .replace('{{token}}', String(Math.floor(100000 + Math.random() * 900000)))}
         </Text>
 
       </ScrollView>
@@ -132,21 +141,21 @@ export default function PrivacyConsentScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FEF8F4',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     padding: 20,
   },
   dpdpBanner: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1.5,
-    borderColor: '#FFF0E8',
+    borderColor: colors.primaryBorder,
     marginBottom: 24,
     gap: 12,
     alignItems: 'center',
@@ -154,28 +163,28 @@ const styles = StyleSheet.create({
   dpdpTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#E47656',
+    color: colors.primary,
     marginBottom: 2,
   },
   dpdpText: {
     fontSize: 11,
-    color: '#6B7280',
+    color: colors.textSecondary,
     lineHeight: 15,
     fontWeight: '600',
   },
   sectionTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 12,
     marginTop: 8,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
     paddingHorizontal: 16,
     paddingVertical: 8,
     marginBottom: 20,
@@ -189,18 +198,18 @@ const styles = StyleSheet.create({
   consentTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1F2937',
+    color: colors.text,
     marginBottom: 2,
   },
   consentDesc: {
     fontSize: 11,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontWeight: '500',
     lineHeight: 14,
   },
   divider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.divider,
   },
   docRow: {
     flexDirection: 'row',
@@ -211,11 +220,11 @@ const styles = StyleSheet.create({
   docText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#374151',
+    color: colors.text,
   },
   logText: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: colors.textMuted,
     textAlign: 'center',
     fontWeight: '600',
     paddingHorizontal: 16,

@@ -76,10 +76,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2522', // Sleek dark/bronze theme card
     borderRadius: 24,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
+    boxShadow: '0px 8px 12px rgba(0, 0, 0, 0.12)',
     elevation: 5,
     width: '100%',
     marginBottom: 20,

@@ -1,17 +1,24 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';;
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useLoanStore, LenderOffer } from '../../store/loanStore';
 import Header from '../../components/Header';
 import Button from '../../components/Button';
 import ProfileCard from '../../components/ProfileCard';
 import { Check, Info } from 'lucide-react-native';
+import { useTheme } from '../../lib/theme';
+import { useTranslation } from '../../lib/i18n';
 
 export default function KFSScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { applications, updateApplicationStatus, offers: storeOffers } = useLoanStore();
   const [accepted, setAccepted] = useState(false);
+  
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const { t } = useTranslation();
 
   const appId = id as string;
   const application = applications.find((app) => app.id === appId);
@@ -19,8 +26,8 @@ export default function KFSScreen() {
   if (!application) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <Header title="Key Fact Statement (KFS)" />
-        <View style={styles.center}><Text>Application Not Found</Text></View>
+        <Header title={t("Key Fact Statement (KFS)")} />
+        <View style={styles.center}><Text style={{ color: colors.text }}>{t("Application Not Found")}</Text></View>
       </SafeAreaView>
     );
   }
@@ -34,7 +41,7 @@ export default function KFSScreen() {
   if (!offer) {
     offer = {
       id: 'OFF-MOCK',
-      bankName: application.lender || 'Selected Bank Partner',
+      bankName: application.lender || t('Selected Bank Partner'),
       bankLogo: '🏦',
       amount: application.amount,
       interestRate: 11.25,
@@ -43,14 +50,14 @@ export default function KFSScreen() {
       tenure: application.tenure,
       processingFee: 2000,
       coolingPeriodDays: 3,
-      latePaymentCharges: '2% per month',
-      foreclosureCharges: '3%'
+      latePaymentCharges: t('2% per month'),
+      foreclosureCharges: t('3%')
     };
   }
 
   const handleProceed = () => {
     if (!accepted) {
-      Alert.alert('Consent Required', 'Please confirm you have read the Key Fact Statement.');
+      Alert.alert(t('Consent Required'), t('Please confirm you have read the Key Fact Statement.'));
       return;
     }
     // Update status to agreement
@@ -59,45 +66,45 @@ export default function KFSScreen() {
   };
 
   const keyFacts = [
-    { label: 'Lender Identity', value: offer.bankName },
-    { label: 'Approved Loan Principal', value: `₹${offer.amount.toLocaleString('en-IN')}` },
-    { label: 'Net Disbursed Amount (Est.)', value: `₹${(offer.amount - offer.processingFee).toLocaleString('en-IN')}` },
-    { label: 'Total Repayment Cost (Est.)', value: `₹${(offer.emi * offer.tenure).toLocaleString('en-IN')}` },
-    { label: 'Total Interest Charge (Est.)', value: `₹${((offer.emi * offer.tenure) - offer.amount).toLocaleString('en-IN')}` },
-    { label: 'Lending Rate Type', value: 'Fixed Rate' },
+    { label: t('Lender Identity'), value: offer.bankName },
+    { label: t('Approved Loan Principal'), value: `₹${offer.amount.toLocaleString('en-IN')}` },
+    { label: t('Net Disbursed Amount (Est.)'), value: `₹${(offer.amount - offer.processingFee).toLocaleString('en-IN')}` },
+    { label: t('Total Repayment Cost (Est.)'), value: `₹${(offer.emi * offer.tenure).toLocaleString('en-IN')}` },
+    { label: t('Total Interest Charge (Est.)'), value: `₹${((offer.emi * offer.tenure) - offer.amount).toLocaleString('en-IN')}` },
+    { label: t('Lending Rate Type'), value: t('Fixed Rate') },
   ];
 
   const statutoryFacts = [
-    { label: 'Annual Percentage Rate (APR)', value: `${offer.apr}%` },
-    { label: 'Installment Frequency', value: 'Monthly' },
-    { label: 'Individual EMI Amount', value: `₹${offer.emi.toLocaleString('en-IN')}` },
-    { label: 'Total EMI Count', value: `${offer.tenure} Months` },
-    { label: 'Recovery Cooling-off Period', value: `${offer.coolingPeriodDays} Days` },
-    { label: 'Default Penalty charges', value: offer.latePaymentCharges },
-    { label: 'Pre-closure Charges', value: offer.foreclosureCharges },
+    { label: t('Annual Percentage Rate (APR)'), value: `${offer.apr}%` },
+    { label: t('Installment Frequency'), value: t('Monthly') },
+    { label: t('Individual EMI Amount'), value: `₹${offer.emi.toLocaleString('en-IN')}` },
+    { label: t('Total EMI Count'), value: t('{{months}} Months').replace('{{months}}', String(offer.tenure)) },
+    { label: t('Recovery Cooling-off Period'), value: t('{{days}} Days').replace('{{days}}', String(offer.coolingPeriodDays)) },
+    { label: t('Default Penalty charges'), value: offer.latePaymentCharges },
+    { label: t('Pre-closure Charges'), value: offer.foreclosureCharges },
   ];
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header title="Key Fact Statement (KFS)" />
+      <Header title={t("Key Fact Statement (KFS)")} />
       
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* Callout */}
         <View style={styles.kfsCallout}>
-          <Info color="#B45309" size={20} />
+          <Info color="#F59E0B" size={20} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.kfsCalloutTitle}>RBI COMPLIANT SUMMARY</Text>
+            <Text style={styles.kfsCalloutTitle}>{t("RBI COMPLIANT SUMMARY")}</Text>
             <Text style={styles.kfsCalloutText}>
-              Lenders must present this standard KFS detailing all charges before contract execution.
+              {t("Lenders must present this standard KFS detailing all charges before contract execution.")}
             </Text>
           </View>
         </View>
 
         {/* Fact Tables */}
-        <ProfileCard title="BASIC LOAN ATTRIBUTES" items={keyFacts} />
+        <ProfileCard title={t("BASIC LOAN ATTRIBUTES")} items={keyFacts} />
         
-        <ProfileCard title="COST OF CREDIT & APR BREAKDOWN" items={statutoryFacts} />
+        <ProfileCard title={t("COST OF CREDIT & APR BREAKDOWN")} items={statutoryFacts} />
 
         {/* Checkbox Section */}
         <TouchableOpacity
@@ -109,7 +116,7 @@ export default function KFSScreen() {
             {accepted && <Check color="#FFFFFF" size={14} strokeWidth={3} />}
           </View>
           <Text style={styles.checkboxText}>
-            I have read, understood, and accept the Key Fact Statement (KFS) terms and statutory disclosures.
+            {t("I have read, understood, and accept the Key Fact Statement (KFS) terms and statutory disclosures.")}
           </Text>
         </TouchableOpacity>
 
@@ -118,7 +125,7 @@ export default function KFSScreen() {
       {/* Action button footer */}
       <View style={styles.footer}>
         <Button 
-          title="Sign & Agree" 
+          title={t("Sign & Agree")} 
           onPress={handleProceed} 
           disabled={!accepted}
         />
@@ -127,10 +134,10 @@ export default function KFSScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FEF8F4',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     padding: 20,
@@ -142,24 +149,24 @@ const styles = StyleSheet.create({
   },
   kfsCallout: {
     flexDirection: 'row',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.warningLight,
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: '#FDE68A', // Assuming keeping this or use colors.warning border if exists
     marginBottom: 20,
     gap: 12,
   },
   kfsCalloutTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#92400E',
+    color: '#92400E', // Darker text for warning
     letterSpacing: 0.5,
     marginBottom: 2,
   },
   kfsCalloutText: {
     fontSize: 12,
-    color: '#B45309',
+    color: colors.warning,
     lineHeight: 16,
     fontWeight: '600',
   },
@@ -168,11 +175,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 12,
     marginVertical: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
     marginBottom: 24,
   },
   checkboxCircle: {
@@ -180,26 +187,26 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: '#C7C7CC',
+    borderColor: colors.divider,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 2,
   },
   checkboxChecked: {
-    backgroundColor: '#E47656',
-    borderColor: '#E47656',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   checkboxText: {
     flex: 1,
     fontSize: 12,
-    color: '#374151',
+    color: colors.text,
     fontWeight: '600',
     lineHeight: 18,
   },
   footer: {
     padding: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopColor: colors.divider,
   },
 });

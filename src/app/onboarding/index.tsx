@@ -1,12 +1,18 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, TextInput, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, TextInput, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';;
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Check } from 'lucide-react-native';
 import { useOnboardingStore } from '../../store/onboardingStore';
 import { supabase } from '../../lib/supabase';
+import { useTheme } from '../../lib/theme';
+import { useTranslation } from '../../lib/i18n';
 
 export default function OnboardingWizard() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const { t } = useTranslation();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   
@@ -28,8 +34,6 @@ export default function OnboardingWizard() {
   const [emailOtpSent, setEmailOtpSent] = useState(false);
   const [emailOtp, setEmailOtp] = useState(['', '', '', '', '', '']);
   const [emailVerified, setEmailVerified] = useState(false);
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const emailOtpRefs = useRef<Array<TextInput | null>>([]);
 
   // Step 4 State
@@ -176,34 +180,40 @@ export default function OnboardingWizard() {
 
   const handlePinKeyPress = (key: string, index: number) => {
     const currentPin = isConfirming ? confirmPin : pin;
-    if (key === 'Backspace' && !currentPin[index] && index > 0) {
-      if (isConfirming) {
-        const newPin = [...confirmPin];
-        newPin[index - 1] = '';
-        setConfirmPin(newPin);
-      } else {
+    
+    // Handle backspace when box is empty
+    if (key === 'Backspace' && !currentPin[index]) {
+      if (index > 0) {
+        if (isConfirming) {
+          const newPin = [...confirmPin];
+          newPin[index - 1] = '';
+          setConfirmPin(newPin);
+        } else {
+          const newPin = [...pin];
+          newPin[index - 1] = '';
+          setPin(newPin);
+        }
+        pinRefs.current[index - 1]?.focus();
+      } else if (index === 0 && isConfirming) {
+        // If they are on the first box of confirm PIN and press backspace,
+        // take them back to the create PIN step seamlessly.
+        setIsConfirming(false);
+        setConfirmPin(['', '', '', '']);
+        // Remove the last digit of the original PIN so they can re-type it
         const newPin = [...pin];
-        newPin[index - 1] = '';
+        newPin[3] = '';
         setPin(newPin);
+        // Add a tiny delay to ensure state update completes before focus
+        setTimeout(() => {
+          pinRefs.current[3]?.focus();
+        }, 50);
       }
-      pinRefs.current[index - 1]?.focus();
     }
   };
 
   const handleNext = async () => {
-    if (step === 2) {
-      if (!otpSent) {
-        // Send OTP
-        await sendOTP();
-        return;
-      } else {
-        // Verify OTP
-        const verified = await verifyOTP();
-        if (!verified) return;
-      }
-    }
-
-    if (step === 3) {
+    // Step 1: Email Verification (Authentication)
+    if (step === 1) {
       if (!emailOtpSent) {
         // Send Email OTP
         await sendEmailOTP();
@@ -212,52 +222,93 @@ export default function OnboardingWizard() {
         // Verify Email OTP
         const verified = await verifyEmailOTP();
         if (!verified) return;
-      } else {
-        // Create password
-        if (password.length < 6) {
-           Alert.alert('Error', 'Password must be at least 6 characters.');
-           return;
-        }
-        if (password !== confirmPassword) {
-           Alert.alert('Error', 'Passwords do not match.');
-           return;
-        }
-        // Save password
+
+        // Check if returning user
         setLoading(true);
-        const { error } = await supabase.auth.updateUser({ password });
-        setLoading(false);
-        if (error) {
-           Alert.alert('Error', error.message);
-           return;
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase.from('profiles').select('pin').eq('id', user.id).single();
+          setLoading(false);
+          
+          if (profile?.pin) {
+            // Returning user - they already have a PIN!
+            router.replace('/(tabs)/home');
+            return;
+          }
+        } else {
+          setLoading(false);
         }
+
+        // New user - move to next step
+        setStep(step + 1);
+        return;
+      }
+    }
+
+    // Step 2: Language Selection
+    if (step === 2) {
+      setStep(step + 1);
+      return;
+    }
+
+    // Step 3: Mobile Verification
+    if (step === 3) {
+      if (!otpSent) {
+        // Send OTP
+        await sendOTP();
+        return;
+      } else {
+        // Verify OTP
+        const verified = await verifyOTP();
+        if (!verified) return;
+        
+        // Move to create PIN step
         setStep(step + 1);
         return;
       }
     }
 
     if (step === 4) {
-      const pinString = isConfirming ? confirmPin.join('') : pin.join('');
-      if (pinString.length !== 4 || (!isConfirming && pinString !== confirmPin.join(''))) {
-         if (!isConfirming && pinString.length === 4) {
-            setIsConfirming(true);
+      if (!isConfirming) {
+         if (pin.join('').length !== 4) {
+            Alert.alert('Error', t('Please enter a 4-digit PIN.'));
             return;
          }
-         Alert.alert('Error', 'PINs do not match or are incomplete.');
+         setIsConfirming(true);
          return;
+      } else {
+         if (confirmPin.join('').length !== 4) {
+            Alert.alert('Error', t('Please confirm your 4-digit PIN.'));
+            return;
+         }
+         if (pin.join('') !== confirmPin.join('')) {
+            Alert.alert('Error', t('PINs do not match. Please try again.'));
+            setConfirmPin(['', '', '', '']);
+            pinRefs.current[0]?.focus();
+            return;
+         }
       }
       
+      const pinString = pin.join('');
       setStorePin(pinString);
       
       // Save profile to Supabase
       setLoading(true);
       const { data: userData } = await supabase.auth.getUser();
       if (userData?.user) {
+        // Hash PIN
+        let hash = 0;
+        for (let i = 0; i < pinString.length; i++) {
+          hash = (hash * 31 + pinString.charCodeAt(i)) & 0xffffffff;
+        }
+        const hashedPin = Math.abs(hash).toString(16);
+
         const { error } = await supabase.from('profiles').upsert({
           id: userData.user.id,
           language,
           mobile: mobileNumber,
           email,
-          pin: pinString,
+          pin: hashedPin,
         });
         
         setLoading(false);
@@ -285,11 +336,20 @@ export default function OnboardingWizard() {
       setConfirmPin(['', '', '', '']);
       return;
     }
+    
+    // Step 3 (Mobile) back logic
     if (step === 3) {
+      if (otpSent) {
+        setOtpSent(false);
+        setOtp(['', '', '', '', '', '']);
+        return;
+      }
+    }
+    
+    // Step 1 (Email) back logic
+    if (step === 1) {
       if (emailVerified) {
         setEmailVerified(false);
-        setPassword('');
-        setConfirmPassword('');
         return;
       } else if (emailOtpSent) {
         setEmailOtpSent(false);
@@ -297,6 +357,7 @@ export default function OnboardingWizard() {
         return;
       }
     }
+
     if (step > 1) {
       setStep(step - 1);
     } else {
@@ -319,8 +380,60 @@ export default function OnboardingWizard() {
 
   const renderStep1 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Select Language</Text>
-      <Text style={styles.stepSubtitle}>Choose your preferred language to continue</Text>
+      <Text style={styles.stepTitle}>{t("Email Verification")}</Text>
+      <Text style={styles.stepSubtitle}>
+        {!emailOtpSent ? t("Establish a secure recovery method") : t("Enter the 6-digit code sent to your email")}
+      </Text>
+
+      {!emailOtpSent ? (
+        <>
+          <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn} disabled={loading}>
+            <Text style={styles.googleButtonText}>{t("Continue with Google")}</Text>
+          </TouchableOpacity>
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>{t("OR")}</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.textInputFull}
+              placeholder={t("Email Address")}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+              placeholderTextColor="#999"
+            />
+          </View>
+        </>
+      ) : (
+        <View style={styles.otpContainer}>
+          {[0, 1, 2, 3, 4, 5].map((index) => (
+            <TextInput
+              key={`email-otp-${index}`}
+              ref={(ref) => {
+                emailOtpRefs.current[index] = ref;
+              }}
+              style={styles.otpBox}
+              keyboardType="number-pad"
+              maxLength={1}
+              value={emailOtp[index]}
+              onChangeText={(val) => handleEmailOtpChange(val, index)}
+              onKeyPress={({ nativeEvent }) => handleEmailOtpKeyPress(nativeEvent.key, index)}
+            />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+
+  const renderStep2 = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>{t("Select Language")}</Text>
+      <Text style={styles.stepSubtitle}>{t("Choose your preferred language to continue")}</Text>
       
       <View style={styles.optionsContainer}>
         {languages.map((lang) => (
@@ -344,11 +457,11 @@ export default function OnboardingWizard() {
     </View>
   );
 
-  const renderStep2 = () => (
+  const renderStep3 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Mobile Verification</Text>
+      <Text style={styles.stepTitle}>{t("Mobile Verification")}</Text>
       <Text style={styles.stepSubtitle}>
-        {otpSent ? 'Enter the 6-digit code sent to your number' : 'Enter your mobile number to register'}
+        {otpSent ? t("Enter the 6-digit code sent to your number") : t("Enter your mobile number to register")}
       </Text>
 
       {!otpSent ? (
@@ -358,7 +471,7 @@ export default function OnboardingWizard() {
           </View>
           <TextInput
             style={styles.textInput}
-            placeholder="Mobile Number"
+            placeholder={t("Mobile Number")}
             keyboardType="phone-pad"
             maxLength={10}
             value={mobileNumber}
@@ -387,96 +500,21 @@ export default function OnboardingWizard() {
 
       {!otpSent ? (
         <TouchableOpacity style={styles.secondaryButton} onPress={sendOTP} disabled={loading}>
-          {loading ? <ActivityIndicator color="#E47656" /> : <Text style={styles.secondaryButtonText}>Send OTP</Text>}
+          {loading ? <ActivityIndicator color={colors.primary} /> : <Text style={styles.secondaryButtonText}>{t("Send OTP")}</Text>}
         </TouchableOpacity>
       ) : (
         <TouchableOpacity style={styles.textButton} onPress={sendOTP} disabled={loading}>
-          <Text style={styles.textButtonText}>Resend Code</Text>
+          <Text style={styles.textButtonText}>{t("Resend Code")}</Text>
         </TouchableOpacity>
-      )}
-    </View>
-  );
-
-  const renderStep3 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Email Verification</Text>
-      <Text style={styles.stepSubtitle}>
-        {!emailOtpSent ? 'Establish a secure recovery method' : (!emailVerified ? 'Enter the 6-digit code sent to your email' : 'Create a password for your account')}
-      </Text>
-
-      {!emailOtpSent ? (
-        <>
-          <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn} disabled={loading}>
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.textInputFull}
-              placeholder="Email Address"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={email}
-              onChangeText={setEmail}
-              placeholderTextColor="#999"
-            />
-          </View>
-        </>
-      ) : !emailVerified ? (
-        <View style={styles.otpContainer}>
-          {[0, 1, 2, 3, 4, 5].map((index) => (
-            <TextInput
-              key={`email-otp-${index}`}
-              ref={(ref) => {
-                emailOtpRefs.current[index] = ref;
-              }}
-              style={styles.otpBox}
-              keyboardType="number-pad"
-              maxLength={1}
-              value={emailOtp[index]}
-              onChangeText={(val) => handleEmailOtpChange(val, index)}
-              onKeyPress={({ nativeEvent }) => handleEmailOtpKeyPress(nativeEvent.key, index)}
-            />
-          ))}
-        </View>
-      ) : (
-        <>
-          <View style={[styles.inputWrapper, { marginBottom: 16 }]}>
-            <TextInput
-              style={styles.textInputFull}
-              placeholder="Password (min 6 chars)"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              placeholderTextColor="#999"
-            />
-          </View>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.textInputFull}
-              placeholder="Confirm Password"
-              secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholderTextColor="#999"
-            />
-          </View>
-        </>
       )}
     </View>
   );
 
   const renderStep4 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>{isConfirming ? 'Confirm PIN' : 'Create Security PIN'}</Text>
+      <Text style={styles.stepTitle}>{isConfirming ? t("Confirm PIN") : t("Create Security PIN")}</Text>
       <Text style={styles.stepSubtitle}>
-        {isConfirming ? 'Please re-enter your 4-digit PIN' : 'Set a 4-digit PIN for quick access'}
+        {isConfirming ? t("Please re-enter your 4-digit PIN") : t("Set a 4-digit PIN for quick access")}
       </Text>
 
       <View style={styles.pinContainer}>
@@ -531,12 +569,12 @@ export default function OnboardingWizard() {
           ) : (
             <Text style={styles.primaryButtonText}>
               {step === 4 
-                ? 'Complete Setup' 
+                ? t('Complete Setup') 
                 : step === 3 
-                  ? (!emailOtpSent ? 'Send OTP' : !emailVerified ? 'Verify Email' : 'Set Password')
-                  : step === 2 && !otpSent 
-                    ? 'Send OTP' 
-                    : 'Continue'}
+                  ? (!otpSent ? t('Send OTP') : t('Verify Mobile'))
+                  : step === 2 
+                    ? t('Continue')
+                    : (!emailOtpSent ? t('Send OTP') : t('Verify Email'))}
             </Text>
           )}
         </TouchableOpacity>
@@ -545,10 +583,10 @@ export default function OnboardingWizard() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
     height: '100%',
   },
   header: {
@@ -558,7 +596,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: colors.divider,
   },
   backButton: {
     padding: 8,
@@ -567,20 +605,20 @@ const styles = StyleSheet.create({
   progressContainer: {
     flex: 1,
     height: 6,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: colors.surfaceBorder,
     borderRadius: 3,
     marginRight: 16,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#E47656',
+    backgroundColor: colors.primary,
     borderRadius: 3,
   },
   stepIndicator: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#999',
+    color: colors.textMuted,
   },
   scrollContent: {
     flexGrow: 1,
@@ -592,12 +630,12 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: colors.text,
     marginBottom: 8,
   },
   stepSubtitle: {
     fontSize: 16,
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 32,
     lineHeight: 24,
   },
@@ -613,26 +651,26 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#F0F0F0',
-    backgroundColor: '#FAFAFA',
+    borderColor: colors.surfaceBorder,
+    backgroundColor: colors.surface,
   },
   optionCardSelected: {
-    borderColor: '#E47656',
-    backgroundColor: '#FFF5F2',
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
   },
   optionText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text,
   },
   optionTextSelected: {
-    color: '#E47656',
+    color: colors.primary,
   },
   checkCircle: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#E47656',
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -642,22 +680,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#F0F0F0',
+    borderColor: colors.surfaceBorder,
     borderRadius: 16,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.surface,
     overflow: 'hidden',
   },
   inputPrefix: {
     paddingHorizontal: 16,
     paddingVertical: 18,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: colors.surfaceBorder,
     borderRightWidth: 1,
-    borderRightColor: '#E0E0E0',
+    borderRightColor: colors.divider,
   },
   prefixText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text,
   },
   textInput: {
     flex: 1,
@@ -665,7 +703,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     fontSize: 16,
     fontWeight: '500',
-    color: '#333',
+    color: colors.text,
   },
   textInputFull: {
     flex: 1,
@@ -673,17 +711,17 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     fontSize: 16,
     fontWeight: '500',
-    color: '#333',
+    color: colors.text,
   },
   secondaryButton: {
     marginTop: 20,
-    backgroundColor: '#FFF5F2',
+    backgroundColor: colors.primaryLight,
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: 'center',
   },
   secondaryButtonText: {
-    color: '#E47656',
+    color: colors.primary,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -692,7 +730,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   textButtonText: {
-    color: '#E47656',
+    color: colors.primary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -707,28 +745,29 @@ const styles = StyleSheet.create({
     width: '15%',
     aspectRatio: 1,
     borderWidth: 2,
-    borderColor: '#F0F0F0',
+    borderColor: colors.surfaceBorder,
     borderRadius: 12,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.surface,
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
-    color: '#333',
+    padding: 0,
+    color: colors.text,
   },
 
   // Step 3: Social
   googleButton: {
-    backgroundColor: '#F4F4F4',
+    backgroundColor: colors.surface,
     paddingVertical: 18,
     borderRadius: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
   },
   googleButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text,
   },
   divider: {
     flexDirection: 'row',
@@ -738,11 +777,11 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#EAEAEA',
+    backgroundColor: colors.divider,
   },
   dividerText: {
     marginHorizontal: 16,
-    color: '#999',
+    color: colors.textMuted,
     fontWeight: '600',
     fontSize: 14,
   },
@@ -758,23 +797,24 @@ const styles = StyleSheet.create({
     width: 60,
     height: 70,
     borderWidth: 2,
-    borderColor: '#F0F0F0',
+    borderColor: colors.surfaceBorder,
     borderRadius: 16,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
   pinBoxFilled: {
-    borderColor: '#E47656',
-    backgroundColor: '#FFF5F2',
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
   },
   pinInput: {
     width: '100%',
     height: '100%',
     textAlign: 'center',
+    padding: 0,
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.text,
   },
 
   // Footer
@@ -782,18 +822,15 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: Platform.OS === 'ios' ? 34 : 24,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    backgroundColor: '#FFFFFF',
+    borderTopColor: colors.divider,
+    backgroundColor: colors.background,
   },
   primaryButton: {
-    backgroundColor: '#E47656',
+    backgroundColor: colors.primary,
     paddingVertical: 18,
     borderRadius: 9999,
     alignItems: 'center',
-    shadowColor: '#E47656',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    boxShadow: `0px 4px 8px ${colors.primary}4D`,
     elevation: 4,
   },
   primaryButtonText: {

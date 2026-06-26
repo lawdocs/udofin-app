@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Share } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';;
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useLoanStore } from '../../store/loanStore';
 import Header from '../../components/Header';
@@ -7,21 +8,26 @@ import StatusBadge from '../../components/StatusBadge';
 import Timeline from '../../components/Timeline';
 import { EmptyState } from '../../components/FeedbackStates';
 import { Sparkles, FileSignature, Landmark, Share2, ClipboardList } from 'lucide-react-native';
+import { useTheme } from '../../lib/theme';
+import { useTranslation } from '../../lib/i18n';
 
 export default function ApplicationDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { applications } = useLoanStore();
+  const { colors, isDark } = useTheme();
+  const styles = getStyles(colors);
+  const { t } = useTranslation();
 
   const application = applications.find((app) => app.id === id);
 
   if (!application) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <Header title="Application Status" />
+        <Header title={t("Application Status")} />
         <EmptyState
-          title="Application Not Found"
-          description={`We could not locate any application with identifier: ${id}`}
+          title={t("Application Not Found")}
+          description={t("We could not locate any application with identifier: {{id}}").replace('{{id}}', String(id))}
         />
       </SafeAreaView>
     );
@@ -30,7 +36,9 @@ export default function ApplicationDetailsScreen() {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Udofin Loan Application ${application.id} Status: ${application.status.toUpperCase()}`,
+        message: t('Udofin Loan Application {{id}} Status: {{status}}')
+          .replace('{{id}}', application.id)
+          .replace('{{status}}', application.status.toUpperCase()),
       });
     } catch (error) {
       console.log(error);
@@ -40,10 +48,10 @@ export default function ApplicationDetailsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <Header
-        title="Application Status"
+        title={t("Application Status")}
         rightElement={
           <TouchableOpacity onPress={handleShare} style={styles.shareBtn}>
-            <Share2 color="#E47656" size={20} />
+            <Share2 color={colors.primary} size={20} />
           </TouchableOpacity>
         }
       />
@@ -53,7 +61,7 @@ export default function ApplicationDetailsScreen() {
         <View style={styles.summaryCard}>
           <View style={styles.row}>
             <View>
-              <Text style={styles.loanType}>{application.loanType}</Text>
+              <Text style={styles.loanType}>{t(application.loanType)}</Text>
               <Text style={styles.appId}>{application.id}</Text>
             </View>
             <StatusBadge status={application.status} />
@@ -63,11 +71,11 @@ export default function ApplicationDetailsScreen() {
 
           <View style={styles.statsRow}>
             <View>
-              <Text style={styles.label}>AMOUNT REQUESTED</Text>
+              <Text style={styles.label}>{t("AMOUNT REQUESTED")}</Text>
               <Text style={styles.val}>₹{application.amount.toLocaleString('en-IN')}</Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={styles.label}>SUBMITTED ON</Text>
+              <Text style={styles.label}>{t("SUBMITTED ON")}</Text>
               <Text style={styles.val}>{application.date}</Text>
             </View>
           </View>
@@ -76,17 +84,17 @@ export default function ApplicationDetailsScreen() {
         {/* Dynamic Action Calls (Alert cards based on current status) */}
         {application.status === 'offers' && (
           <TouchableOpacity
-            style={[styles.alertCard, { borderColor: '#8B5CF6', backgroundColor: '#FBFBFF' }]}
+            style={[styles.alertCard, { borderColor: '#8B5CF6', backgroundColor: isDark ? 'rgba(139, 92, 246, 0.1)' : '#FBFBFF' }]}
             onPress={() => router.push(`/compare-offers/${application.id}` as any)}
             activeOpacity={0.9}
           >
-            <View style={[styles.alertIconBg, { backgroundColor: '#F3E8FF' }]}>
+            <View style={[styles.alertIconBg, { backgroundColor: isDark ? 'rgba(139, 92, 246, 0.2)' : '#F3E8FF' }]}>
               <Sparkles color="#7C3AED" size={22} />
             </View>
             <View style={styles.alertContent}>
-              <Text style={[styles.alertTitle, { color: '#7C3AED' }]}>Offers Received!</Text>
+              <Text style={[styles.alertTitle, { color: '#7C3AED' }]}>{t("Offers Received!")}</Text>
               <Text style={styles.alertDesc}>
-                We matched you with 3 registered banks. Tap to compare interest rates and EMIs.
+                {t("We matched you with 3 registered banks. Tap to compare interest rates and EMIs.")}
               </Text>
             </View>
           </TouchableOpacity>
@@ -94,17 +102,17 @@ export default function ApplicationDetailsScreen() {
 
         {application.status === 'selected' && (
           <TouchableOpacity
-            style={[styles.alertCard, { borderColor: '#E47656', backgroundColor: '#FFFBF9' }]}
+            style={[styles.alertCard, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}
             onPress={() => router.push(`/kfs/${application.id}` as any)}
             activeOpacity={0.9}
           >
-            <View style={[styles.alertIconBg, { backgroundColor: '#FFF5F2' }]}>
-              <Landmark color="#E47656" size={22} />
+            <View style={[styles.alertIconBg, { backgroundColor: colors.primaryLight }]}>
+              <Landmark color={colors.primary} size={22} />
             </View>
             <View style={styles.alertContent}>
-              <Text style={[styles.alertTitle, { color: '#E47656' }]}>Selected Lender Terms</Text>
+              <Text style={[styles.alertTitle, { color: colors.primary }]}>{t("Selected Lender Terms")}</Text>
               <Text style={styles.alertDesc}>
-                {application.lender} selected. Please review the Key Fact Statement (KFS) to continue.
+                {t("{{lender}} selected. Please review the Key Fact Statement (KFS) to continue.").replace('{{lender}}', application.lender || '')}
               </Text>
             </View>
           </TouchableOpacity>
@@ -112,24 +120,24 @@ export default function ApplicationDetailsScreen() {
 
         {application.status === 'agreement' && (
           <TouchableOpacity
-            style={[styles.alertCard, { borderColor: '#EF4444', backgroundColor: '#FFFDFD' }]}
+            style={[styles.alertCard, { borderColor: colors.danger, backgroundColor: colors.dangerLight }]}
             onPress={() => router.push(`/agreement/${application.id}` as any)}
             activeOpacity={0.9}
           >
-            <View style={[styles.alertIconBg, { backgroundColor: '#FEE2E2' }]}>
-              <FileSignature color="#DC2626" size={22} />
+            <View style={[styles.alertIconBg, { backgroundColor: colors.dangerLight }]}>
+              <FileSignature color={colors.danger} size={22} />
             </View>
             <View style={styles.alertContent}>
-              <Text style={[styles.alertTitle, { color: '#DC2626' }]}>Sign Loan Agreement</Text>
+              <Text style={[styles.alertTitle, { color: colors.danger }]}>{t("Sign Loan Agreement")}</Text>
               <Text style={styles.alertDesc}>
-                Terms are accepted. Please provide your digital signature to authorize disbursement.
+                {t("Terms are accepted. Please provide your digital signature to authorize disbursement.")}
               </Text>
             </View>
           </TouchableOpacity>
         )}
 
         {/* Timeline Checklist */}
-        <Text style={styles.sectionTitle}>APPLICATION TIMELINE</Text>
+        <Text style={styles.sectionTitle}>{t("APPLICATION TIMELINE")}</Text>
         <View style={styles.timelineWrapper}>
           <Timeline currentStatus={application.status} />
         </View>
@@ -139,10 +147,10 @@ export default function ApplicationDetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FEF8F4',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     padding: 20,
@@ -150,14 +158,14 @@ const styles = StyleSheet.create({
   shareBtn: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: '#FFF5F2',
+    backgroundColor: colors.primaryLight,
   },
   summaryCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
     marginBottom: 20,
   },
   row: {
@@ -168,17 +176,17 @@ const styles = StyleSheet.create({
   loanType: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1F2937',
+    color: colors.text,
   },
   appId: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontWeight: '600',
     marginTop: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.divider,
     marginVertical: 16,
   },
   statsRow: {
@@ -188,14 +196,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     letterSpacing: 0.5,
     marginBottom: 2,
   },
   val: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1F2937',
+    color: colors.text,
   },
 
   // Alerts
@@ -225,7 +233,7 @@ const styles = StyleSheet.create({
   },
   alertDesc: {
     fontSize: 12,
-    color: '#4B5563',
+    color: colors.textSecondary,
     lineHeight: 16,
     fontWeight: '500',
   },
@@ -234,16 +242,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 16,
   },
   timelineWrapper: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
     marginBottom: 20,
   },
 });
