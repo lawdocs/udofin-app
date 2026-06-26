@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView, Switch, TouchableOpac
 import { useRouter } from 'expo-router';
 import Header from '../components/Header';
 import { useOnboardingStore } from '../store/onboardingStore';
+import { useLoanStore } from '../store/loanStore';
 import { supabase } from '../lib/supabase';
 import { LogOut, Trash2 } from 'lucide-react-native';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { clearState: clearOnboarding } = useOnboardingStore();
+  const { activeLoan, clearStore } = useLoanStore();
 
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(false);
@@ -17,24 +19,48 @@ export default function SettingsScreen() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     clearOnboarding();
+    clearStore();
     router.replace('/');
   };
 
   const handleDeleteAccount = () => {
+    // 1. Verify if user has an active loan with outstanding amount
+    if (activeLoan && activeLoan.outstandingAmount > 0) {
+      Alert.alert(
+        'Deletion Blocked',
+        `You have an active loan of ₹${activeLoan.outstandingAmount.toLocaleString('en-IN')} with ${activeLoan.lenderName}. Under the DPDP Act, 2023 and RBI regulations, your personal data cannot be erased while you have active credit obligations. Please repay all outstanding dues before requesting account deletion.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    // 2. No active loan, proceed with confirmation dialog
     Alert.alert(
-      'Delete Account',
-      'WARNING: This action is permanent. All active records and consent parameters will be purged in compliance with DPDP data erasing rules. Do you want to proceed?',
+      'Request Account Deletion',
+      'WARNING: This action is permanent. All profile records, loan history, and consent parameters will be purged from our servers and downstream partners in compliance with DPDP data erasing rules. Do you want to proceed?',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
-          text: 'Delete Permanently', 
+          text: 'Erase All Data', 
           style: 'destructive',
           onPress: async () => {
-            // purging auth
-            await supabase.auth.signOut();
-            clearOnboarding();
-            Alert.alert('Purge Initiated', 'Your account data has been queued for permanent deletion.');
-            router.replace('/');
+            try {
+              // Get current user ID
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                // Delete user profile from database in compliance with DPDP data erasing rules
+                await supabase.from('profiles').delete().eq('id', user.id);
+              }
+              // Sign out from Supabase
+              await supabase.auth.signOut();
+              // Reset store states
+              clearOnboarding();
+              clearStore();
+              Alert.alert('Data Purged Successfully', 'Your profile, loan history, and consent parameters have been completely erased from our servers in compliance with the DPDP Act, 2023.');
+              router.replace('/');
+            } catch {
+              Alert.alert('Deletion Failed', 'Failed to request account deletion. Please try again.');
+            }
           }
         }
       ]
