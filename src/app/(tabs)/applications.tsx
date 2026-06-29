@@ -1,25 +1,32 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLoanStore } from '../../store/loanStore';
 import Header from '../../components/Header';
 import StatusBadge from '../../components/StatusBadge';
 import { EmptyState } from '../../components/FeedbackStates';
 import { ClipboardList, ChevronRight } from 'lucide-react-native';
+import { useTheme } from '../../lib/theme';
+import { useTranslation } from '../../lib/i18n';
 
 export default function ApplicationsScreen() {
   const router = useRouter();
   const { applications } = useLoanStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <Header title="My Applications" showBack={false} />
+    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
+      <Header title={t("My Applications")} showBack={false} />
       
       {applications.length === 0 ? (
         <EmptyState
-          title="No Applications Found"
-          description="Apply for a new loan to match with RBI-registered lenders."
-          icon={<ClipboardList color="#9CA3AF" size={48} />}
+          title={t("No Applications Found")}
+          description={t("Apply for a new loan to match with RBI-registered lenders.")}
+          icon={<ClipboardList color={colors.textMuted} size={48} />}
         />
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -32,7 +39,7 @@ export default function ApplicationsScreen() {
             >
               <View style={styles.cardRow}>
                 <View>
-                  <Text style={styles.loanType}>{app.loanType}</Text>
+                  <Text style={styles.loanType}>{t(app.loanType)}</Text>
                   <Text style={styles.appId}>{app.id}</Text>
                 </View>
                 <StatusBadge status={app.status} />
@@ -40,57 +47,54 @@ export default function ApplicationsScreen() {
 
               <View style={styles.detailsGrid}>
                 <View>
-                  <Text style={styles.label}>Amount</Text>
+                  <Text style={styles.label}>{t("Amount")}</Text>
                   <Text style={styles.value}>₹{app.amount.toLocaleString('en-IN')}</Text>
                 </View>
                 <View style={{ alignItems: 'center' }}>
-                  <Text style={styles.label}>Tenure</Text>
-                  <Text style={styles.value}>{app.tenure} Months</Text>
+                  <Text style={styles.label}>{t("Tenure")}</Text>
+                  <Text style={styles.value}>{app.tenure} {t("Months")}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.label}>Submitted On</Text>
+                  <Text style={styles.label}>{t("Submitted On")}</Text>
                   <Text style={styles.value}>{app.date}</Text>
                 </View>
               </View>
 
               {app.lender && (
                 <View style={styles.lenderBox}>
-                  <Text style={styles.lenderLabel}>Selected Lender:</Text>
+                  <Text style={styles.lenderLabel}>{t("Selected Lender:")}</Text>
                   <Text style={styles.lenderValue}>{app.lender}</Text>
                 </View>
               )}
 
               <View style={styles.footer}>
-                <Text style={styles.footerText}>View details & progress</Text>
-                <ChevronRight color="#E47656" size={16} />
+                <Text style={styles.footerText}>{t("View details & progress")}</Text>
+                <ChevronRight color={colors.primary} size={16} />
               </View>
             </TouchableOpacity>
           ))}
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FEF8F4',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     padding: 20,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
+    boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.03)',
     elevation: 2,
   },
   cardRow: {
@@ -98,18 +102,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.divider,
     paddingBottom: 14,
     marginBottom: 14,
   },
   loanType: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1F2937',
+    color: colors.text,
   },
   appId: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontWeight: '600',
     marginTop: 2,
   },
@@ -121,31 +125,31 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     letterSpacing: 0.5,
     marginBottom: 2,
   },
   value: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#1F2937',
+    color: colors.text,
   },
   lenderBox: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
     padding: 10,
     borderRadius: 8,
     marginBottom: 12,
   },
   lenderLabel: {
     fontSize: 12,
-    color: '#4B5563',
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   lenderValue: {
     fontSize: 12,
-    color: '#E47656',
+    color: colors.primary,
     fontWeight: '700',
   },
   footer: {
@@ -153,12 +157,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: colors.divider,
     paddingTop: 12,
   },
   footerText: {
     fontSize: 12,
-    color: '#E47656',
+    color: colors.primary,
     fontWeight: '700',
   },
 });

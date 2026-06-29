@@ -1,67 +1,74 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLoanStore } from '../../store/loanStore';
 import Header from '../../components/Header';
 import StatusBadge from '../../components/StatusBadge';
 import { EmptyState } from '../../components/FeedbackStates';
 import { Wallet, Calendar, Download, Eye, FileText } from 'lucide-react-native';
+import { useTheme } from '../../lib/theme';
+import { useTranslation } from '../../lib/i18n';
 
 export default function LoanScreen() {
   const router = useRouter();
   const { activeLoan, payEmi } = useLoanStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const handlePayEmi = (emiId: string, amount: number) => {
     Alert.alert(
-      'Pay EMI',
-      `Process payment of ₹${amount.toLocaleString('en-IN')}?`,
+      t('Pay EMI'),
+      `${t('Process payment of')} ₹${amount.toLocaleString('en-IN')}?`,
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Pay Now', onPress: () => payEmi(emiId) }
+        { text: t('Cancel'), style: 'cancel' },
+        { text: t('Pay Now'), onPress: () => payEmi(emiId) }
       ]
     );
   };
 
   const simulateDownload = (fileName: string) => {
-    Alert.alert('Download Started', `Downloading ${fileName}...`);
+    Alert.alert(t('Download Started'), `${t('Downloading')} ${fileName}...`);
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <Header title="My Loan Account" showBack={false} />
+    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
+      <Header title={t("My Loan Account")} showBack={false} />
       
       {!activeLoan ? (
         <EmptyState
-          title="No Active Loan"
-          description="You do not have any active loans. Apply for a loan to get matched."
-          icon={<Wallet color="#9CA3AF" size={48} />}
+          title={t("No Active Loan")}
+          description={t("You do not have any active loans. Apply for a loan to get matched.")}
+          icon={<Wallet color={colors.textMuted} size={48} />}
         />
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           
           {/* Main Info Box */}
           <View style={styles.outstandingCard}>
-            <Text style={styles.outstandingLabel}>TOTAL OUTSTANDING DEBT</Text>
+            <Text style={styles.outstandingLabel}>{t("TOTAL OUTSTANDING DEBT")}</Text>
             <Text style={styles.outstandingAmount}>₹{activeLoan.outstandingAmount.toLocaleString('en-IN')}</Text>
             
             <View style={styles.amountMetaRow}>
               <View>
-                <Text style={styles.metaLabel}>Lender</Text>
+                <Text style={styles.metaLabel}>{t("Lender")}</Text>
                 <Text style={styles.metaValue}>{activeLoan.lenderName}</Text>
               </View>
               <View style={{ alignItems: 'center' }}>
-                <Text style={styles.metaLabel}>Interest Rate</Text>
-                <Text style={styles.metaValue}>{activeLoan.interestRate}% p.a.</Text>
+                <Text style={styles.metaLabel}>{t("Interest Rate")}</Text>
+                <Text style={styles.metaValue}>{activeLoan.interestRate}% {t("p.a.")}</Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.metaLabel}>Repaid EMIs</Text>
+                <Text style={styles.metaLabel}>{t("Repaid EMIs")}</Text>
                 <Text style={styles.metaValue}>{activeLoan.paidTenure}/{activeLoan.totalTenure}</Text>
               </View>
             </View>
           </View>
 
           {/* Repayment Schedule */}
-          <Text style={styles.sectionTitle}>REPAYMENT SCHEDULE</Text>
+          <Text style={styles.sectionTitle}>{t("REPAYMENT SCHEDULE")}</Text>
           <View style={styles.scheduleList}>
             {activeLoan.repaymentSchedule.map((emi) => (
               <View key={emi.id} style={styles.emiRow}>
@@ -70,7 +77,7 @@ export default function LoanScreen() {
                     <Calendar color={emi.status === 'paid' ? '#059669' : '#D97706'} size={18} />
                   </View>
                   <View>
-                    <Text style={styles.emiDue}>Due: {emi.dueDate}</Text>
+                    <Text style={styles.emiDue}>{t("Due:")} {emi.dueDate}</Text>
                     <Text style={styles.emiAmount}>₹{emi.amount.toLocaleString('en-IN')}</Text>
                   </View>
                 </View>
@@ -81,7 +88,7 @@ export default function LoanScreen() {
                     onPress={() => handlePayEmi(emi.id, emi.amount)}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.payBtnText}>Pay Now</Text>
+                    <Text style={styles.payBtnText}>{t("Pay Now")}</Text>
                   </TouchableOpacity>
                 ) : (
                   <StatusBadge status={emi.status} />
@@ -91,12 +98,12 @@ export default function LoanScreen() {
           </View>
 
           {/* Statements */}
-          <Text style={styles.sectionTitle}>LOAN DOCUMENTS & STATEMENTS</Text>
+          <Text style={styles.sectionTitle}>{t("LOAN DOCUMENTS & STATEMENTS")}</Text>
           <View style={styles.statementsList}>
             {activeLoan.statements.map((statement) => (
               <View key={statement.id} style={styles.statementRow}>
                 <View style={styles.statementLeft}>
-                  <FileText color="#E47656" size={20} />
+                  <FileText color={colors.primary} size={20} />
                   <View style={{ marginLeft: 12, flex: 1 }}>
                     <Text style={styles.statementName} numberOfLines={1}>{statement.name}</Text>
                     <Text style={styles.statementSize}>{statement.size} • {statement.date}</Text>
@@ -105,10 +112,10 @@ export default function LoanScreen() {
 
                 <View style={styles.statementActions}>
                   <TouchableOpacity style={styles.iconBtn} onPress={() => simulateDownload(statement.name)}>
-                    <Eye color="#6B7280" size={16} />
+                    <Eye color={colors.textSecondary} size={16} />
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.iconBtn} onPress={() => simulateDownload(statement.name)}>
-                    <Download color="#E47656" size={16} />
+                    <Download color={colors.primary} size={16} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -117,20 +124,20 @@ export default function LoanScreen() {
 
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FEF8F4',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     padding: 20,
   },
   outstandingCard: {
-    backgroundColor: '#2A2522',
+    backgroundColor: colors.surfaceDark,
     borderRadius: 24,
     padding: 24,
     marginBottom: 24,
@@ -170,17 +177,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 16,
     marginTop: 8,
   },
   scheduleList: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
     marginBottom: 24,
   },
   emiRow: {
@@ -189,7 +196,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.divider,
   },
   emiLeft: {
     flexDirection: 'row',
@@ -211,17 +218,17 @@ const styles = StyleSheet.create({
   },
   emiDue: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontWeight: '600',
     marginBottom: 2,
   },
   emiAmount: {
     fontSize: 14,
-    color: '#1F2937',
+    color: colors.text,
     fontWeight: '800',
   },
   payBtn: {
-    backgroundColor: '#E47656',
+    backgroundColor: colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -232,11 +239,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   statementsList: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
     marginBottom: 20,
   },
   statementRow: {
@@ -245,7 +252,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.divider,
   },
   statementLeft: {
     flexDirection: 'row',
@@ -256,11 +263,11 @@ const styles = StyleSheet.create({
   statementName: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1F2937',
+    color: colors.text,
   },
   statementSize: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: colors.textMuted,
     fontWeight: '500',
     marginTop: 2,
   },
@@ -272,7 +279,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },

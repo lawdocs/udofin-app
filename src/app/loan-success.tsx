@@ -1,12 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';;
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Button from '../components/Button';
 import { CheckCircle2 } from 'lucide-react-native';
+import { useTheme } from '../lib/theme';
+import { useTranslation } from '../lib/i18n';
 
 export default function LoanSuccessScreen() {
   const router = useRouter();
   const { appId } = useLocalSearchParams();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const { t } = useTranslation();
 
   const handleContinue = () => {
     // Navigate back to tabs home dashboard
@@ -15,41 +21,41 @@ export default function LoanSuccessScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#059669" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.success} />
       
       <View style={styles.content}>
         <View style={styles.iconCircle}>
           <CheckCircle2 color="#FFFFFF" size={64} strokeWidth={2.5} />
         </View>
 
-        <Text style={styles.title}>Loan Agreement Executed!</Text>
+        <Text style={styles.title}>{t("Loan Agreement Executed!")}</Text>
         <Text style={styles.desc}>
-          Your loan request is finalized. The lender partner is now transferring the funds directly to your verified bank account.
+          {t("Your loan request is finalized. The lender partner is now transferring the funds directly to your verified bank account.")}
         </Text>
 
         <View style={styles.infoCard}>
           <View style={styles.row}>
-            <Text style={styles.label}>Application ID</Text>
+            <Text style={styles.label}>{t("Application ID")}</Text>
             <Text style={styles.val}>{appId || 'APP-XXXX'}</Text>
           </View>
           <View style={[styles.row, { borderBottomWidth: 0, paddingBottom: 0, marginBottom: 0 }]}>
-            <Text style={styles.label}>Estimated Disbursal</Text>
-            <Text style={[styles.val, { color: '#059669' }]}>Instant (Within 10 mins)</Text>
+            <Text style={styles.label}>{t("Estimated Disbursal")}</Text>
+            <Text style={[styles.val, { color: colors.success }]}>{t("Instant (Within 10 mins)")}</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.footer}>
-        <Button title="Go to Dashboard" onPress={handleContinue} />
+        <Button title={t("Go to Dashboard")} onPress={handleContinue} />
       </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#059669', // Beautiful premium green background
+    backgroundColor: colors.success, // Premium success background
   },
   content: {
     flex: 1,
@@ -77,7 +83,7 @@ const styles = StyleSheet.create({
   },
   desc: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
     lineHeight: 22,
     fontWeight: '600',
@@ -85,14 +91,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   infoCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 20,
     width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+    boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.1)',
     elevation: 3,
   },
   row: {
@@ -100,17 +103,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.divider,
     marginBottom: 12,
   },
   label: {
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   val: {
     fontSize: 14,
-    color: '#111827',
+    color: colors.text,
     fontWeight: '800',
   },
   footer: {

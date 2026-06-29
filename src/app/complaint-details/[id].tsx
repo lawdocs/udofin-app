@@ -1,26 +1,33 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, Linking, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { useLoanStore } from '../../store/loanStore';
-import Header from '../../components/Header';
-import StatusBadge from '../../components/StatusBadge';
-import ProfileCard from '../../components/ProfileCard';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Linking } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Clock, ExternalLink, Paperclip, Shield } from 'lucide-react-native';
 import { EmptyState } from '../../components/FeedbackStates';
-import { Shield, Clock, ExternalLink, Paperclip } from 'lucide-react-native';
+import Header from '../../components/Header';
+import ProfileCard from '../../components/ProfileCard';
+import StatusBadge from '../../components/StatusBadge';
+import { useTranslation } from '../../lib/i18n';
+import { useTheme } from '../../lib/theme';
+import { useLoanStore } from '../../store/loanStore';
+;
 
 export default function ComplaintDetailsScreen() {
   const { id } = useLocalSearchParams();
   const { complaints } = useLoanStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const { t } = useTranslation();
 
   const ticket = complaints.find((t) => t.id === id);
 
   if (!ticket) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <Header title="Ticket Details" />
+        <Header title={t("Ticket Details")} />
         <EmptyState
-          title="Ticket Not Found"
-          description={`We could not locate support ticket matching identifier: ${id}`}
+          title={t("Ticket Not Found")}
+          description={t("We could not locate support ticket matching identifier: {{id}}").replace('{{id}}', String(id))}
         />
       </SafeAreaView>
     );
@@ -71,20 +78,20 @@ export default function ComplaintDetailsScreen() {
   const lenderNodal = getLenderNodalOfficer(ticket.lenderName);
 
   const details = [
-    { label: 'Ticket Reference ID', value: ticket.id },
-    { label: 'Category', value: ticket.category },
-    { label: 'Created On', value: ticket.date },
+    { label: t('Ticket Reference ID'), value: ticket.id },
+    { label: t('Category'), value: t(ticket.category) },
+    { label: t('Created On'), value: ticket.date },
   ];
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header title="Ticket Progress" />
+      <Header title={t("Ticket Progress")} />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* SLA Countdown & Status Box */}
         <View style={styles.statusBox}>
           <View style={styles.row}>
-            <Text style={styles.statusLabel}>Current Status</Text>
+            <Text style={styles.statusLabel}>{t("Current Status")}</Text>
             <StatusBadge status={ticket.status} />
           </View>
           
@@ -144,11 +151,11 @@ export default function ComplaintDetailsScreen() {
           </View>
         </View>
 
-        <ProfileCard title="TICKET METADATA" items={details} />
+        <ProfileCard title={t("TICKET METADATA")} items={details} />
 
         {/* User Description */}
         <View style={styles.contentCard}>
-          <Text style={styles.cardTitle}>USER COMPLAINT BRIEF</Text>
+          <Text style={styles.cardTitle}>{t("USER COMPLAINT BRIEF")}</Text>
           <Text style={styles.descriptionText}>{ticket.description}</Text>
           
           {ticket.attachmentName && (
@@ -171,9 +178,9 @@ export default function ComplaintDetailsScreen() {
 
         {/* Redressal Response notes */}
         <View style={styles.contentCard}>
-          <Text style={styles.cardTitle}>OFFICIAL RESOLUTION RESPONSE</Text>
+          <Text style={styles.cardTitle}>{t("OFFICIAL RESOLUTION RESPONSE")}</Text>
           <Text style={styles.notesText}>
-            {ticket.notes || 'Our customer support officer is reviewing your complaint details. Response is typically posted within 24 hours.'}
+            {ticket.notes || t('Our customer support officer is reviewing your complaint details. Response is typically posted within 24 hours.')}
           </Text>
         </View>
 
@@ -211,20 +218,20 @@ export default function ComplaintDetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FEF8F4',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     padding: 20,
   },
   statusBox: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
     marginBottom: 20,
   },
   row: {
@@ -235,33 +242,33 @@ const styles = StyleSheet.create({
   statusLabel: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#1F2937',
+    color: colors.text,
   },
   contentCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
     marginBottom: 20,
     width: '100%',
   },
   cardTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 12,
   },
   descriptionText: {
     fontSize: 13,
-    color: '#4B5563',
+    color: colors.textSecondary,
     lineHeight: 18,
     fontWeight: '600',
   },
   notesText: {
     fontSize: 13,
-    color: '#E47656',
+    color: colors.primary,
     lineHeight: 18,
     fontWeight: '700',
   },

@@ -1,16 +1,22 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';;
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useLoanStore, LenderOffer } from '../../store/loanStore';
 import Header from '../../components/Header';
 import OfferCard from '../../components/OfferCard';
 import { EmptyState } from '../../components/FeedbackStates';
 import { Tag } from 'lucide-react-native';
+import { useTheme } from '../../lib/theme';
+import { useTranslation } from '../../lib/i18n';
 
 export default function CompareOffersScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { applications, selectOffer, offers: storeOffers } = useLoanStore();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const { t } = useTranslation();
 
   const appId = id as string;
   const application = applications.find((app) => app.id === appId);
@@ -18,10 +24,10 @@ export default function CompareOffersScreen() {
   if (!application) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <Header title="Lender Offers" />
+        <Header title={t("Lender Offers")} />
         <EmptyState
-          title="Application Not Found"
-          description={`We could not locate application with ID: ${appId}`}
+          title={t("Application Not Found")}
+          description={t("We could not locate application with ID: {{appId}}").replace('{{appId}}', appId)}
         />
       </SafeAreaView>
     );
@@ -46,8 +52,8 @@ export default function CompareOffersScreen() {
         tenure: reqTenure,
         processingFee: 1500,
         coolingPeriodDays: 5,
-        latePaymentCharges: '1% per month',
-        foreclosureCharges: 'Nil'
+        latePaymentCharges: t('1% per month'),
+        foreclosureCharges: t('Nil')
       },
       {
         id: 'OFF-DYN-HDFC',
@@ -60,20 +66,20 @@ export default function CompareOffersScreen() {
         tenure: reqTenure,
         processingFee: 2500,
         coolingPeriodDays: 3,
-        latePaymentCharges: '2% per month',
-        foreclosureCharges: '3%'
+        latePaymentCharges: t('2% per month'),
+        foreclosureCharges: t('3%')
       }
     ];
   }
 
   const handleAcceptOffer = (offer: LenderOffer) => {
     Alert.alert(
-      'Accept Offer',
-      `Are you sure you want to accept the loan offer from ${offer.bankName}?`,
+      t('Accept Offer'),
+      t('Are you sure you want to accept the loan offer from {{bankName}}?').replace('{{bankName}}', offer.bankName),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('Cancel'), style: 'cancel' },
         { 
-          text: 'Accept', 
+          text: t('Accept'), 
           onPress: () => {
             selectOffer(appId, offer.id, offer.bankName);
             // Route to offer details or KFS screen directly
@@ -87,29 +93,31 @@ export default function CompareOffersScreen() {
   const handleViewDetails = (offer: LenderOffer) => {
     // We can show offer parameters
     Alert.alert(
-      `${offer.bankName} Offer Specifications`,
-      `• Interest Rate: ${offer.interestRate}% p.a.\n• APR: ${offer.apr}%\n• Processing Fee: ₹${offer.processingFee.toLocaleString('en-IN')}\n• Cooling Period: ${offer.coolingPeriodDays} Days\n• Foreclosure Charges: ${offer.foreclosureCharges}\n• Late Charges: ${offer.latePaymentCharges}`,
-      [{ text: 'Close', style: 'cancel' }]
+      t('{{bankName}} Offer Specifications').replace('{{bankName}}', offer.bankName),
+      `• ${t('Interest Rate')}: ${offer.interestRate}% p.a.\n• ${t('APR')}: ${offer.apr}%\n• ${t('Processing Fee')}: ₹${offer.processingFee.toLocaleString('en-IN')}\n• ${t('Cooling Period')}: ${offer.coolingPeriodDays} ${t('Days')}\n• ${t('Foreclosure Charges')}: ${offer.foreclosureCharges}\n• ${t('Late Charges')}: ${offer.latePaymentCharges}`,
+      [{ text: t('Close'), style: 'cancel' }]
     );
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header title="Lender Matches" />
+      <Header title={t("Lender Matches")} />
       
       {offers.length === 0 ? (
         <EmptyState
-          title="Fetching Lenders"
-          description="Please wait while lenders evaluate your profile credit score..."
-          icon={<Tag color="#9CA3AF" size={48} />}
+          title={t("Fetching Lenders")}
+          description={t("Please wait while lenders evaluate your profile credit score...")}
+          icon={<Tag color={colors.textMuted} size={48} />}
         />
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           
           <View style={styles.summaryBox}>
-            <Text style={styles.summaryTitle}>Credit Limit Matches</Text>
+            <Text style={styles.summaryTitle}>{t("Credit Limit Matches")}</Text>
             <Text style={styles.summaryText}>
-              We matched application **{appId}** for ₹{application.amount.toLocaleString('en-IN')} with the following RBI-regulated bank options.
+              {t("We matched application **{{appId}}** for ₹{{amount}} with the following RBI-regulated bank options.")
+                .replace('{{appId}}', appId)
+                .replace('{{amount}}', application.amount.toLocaleString('en-IN'))}
             </Text>
           </View>
 
@@ -134,31 +142,31 @@ export default function CompareOffersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FEF8F4',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     padding: 20,
   },
   summaryBox: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
     marginBottom: 20,
   },
   summaryTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1F2937',
+    color: colors.text,
     marginBottom: 4,
   },
   summaryText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     lineHeight: 18,
     fontWeight: '500',
   },

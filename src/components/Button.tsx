@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import { useTheme } from '../lib/theme';
 
 interface ButtonProps {
   title: string;
@@ -20,6 +21,9 @@ export default function Button({
   style,
   textStyle,
 }: ButtonProps) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   const getButtonStyle = () => {
     switch (variant) {
       case 'secondary':
@@ -52,7 +56,7 @@ export default function Button({
       activeOpacity={0.8}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'outline' ? '#E47656' : '#FFFFFF'} size="small" />
+        <ActivityIndicator color={variant === 'outline' ? colors.primary : colors.white} size="small" />
       ) : (
         <Text style={[getTextStyle(), disabled && styles.textDisabled]}>{title}</Text>
       )}
@@ -60,7 +64,7 @@ export default function Button({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   btn: {
     paddingVertical: 16,
     paddingHorizontal: 24,
@@ -70,27 +74,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   btnPrimary: {
-    backgroundColor: '#E47656',
-    shadowColor: '#E47656',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    backgroundColor: colors.primary,
+    boxShadow: `0px 4px 8px ${colors.primary}33`,
     elevation: 3,
   },
   btnSecondary: {
-    backgroundColor: '#FFF5F2',
+    backgroundColor: colors.primaryLight,
     borderWidth: 1,
-    borderColor: '#FBECE8',
+    borderColor: colors.primaryBorder,
   },
   btnOutline: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: '#E47656',
+    borderColor: colors.primary,
   },
   btnDisabled: {
-    backgroundColor: '#EFEFEF',
-    borderColor: '#E0E0E0',
-    shadowOpacity: 0,
+    backgroundColor: colors.surfaceBorder,
+    borderColor: colors.surfaceBorder,
+    boxShadow: 'none',
     elevation: 0,
   },
   text: {
@@ -99,15 +100,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   textPrimary: {
-    color: '#FFFFFF',
+    color: colors.white,
   },
   textSecondary: {
-    color: '#E47656',
+    color: colors.primary,
   },
   textOutline: {
-    color: '#E47656',
+    color: colors.primary,
   },
   textDisabled: {
-    color: '#A0A0A0',
+    color: colors.textMuted,
   },
 });

@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as z from 'zod';
-import { useLoanStore } from '../../store/loanStore';
-import Header from '../../components/Header';
 import Button from '../../components/Button';
+import Header from '../../components/Header';
 import ProgressStepper from '../../components/ProgressStepper';
-
-// Define schemas for validation using Zod
+import { useTranslation } from '../../lib/i18n';
+import { useTheme } from '../../lib/theme';
+import { useLoanStore } from '../../store/loanStore';
 export interface LoanTypeConfig {
   minAmount: number;
   maxAmount: number;
@@ -86,6 +87,10 @@ export default function LoanApplicationWizard() {
   const router = useRouter();
   const [activeStep, setActiveStep] = useState(1);
   const { draftApplication, setDraftApplication, addApplication, clearDraftApplication } = useLoanStore();
+  
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const { t } = useTranslation();
 
   const {
     control,
@@ -101,16 +106,22 @@ export default function LoanApplicationWizard() {
   });
 
   const stepLabels = [
-    'Loan Category',
-    'Limit & Tenure',
-    'Employment Info',
-    'Income Details',
-    'Address Info',
-    'Confirm Details',
+    t('Loan Category'),
+    t('Limit & Tenure'),
+    t('Employment Info'),
+    t('Income Details'),
+    t('Address Info'),
+    t('Confirm Details'),
   ];
 
   const loanTypes = Object.keys(loanTypeConfigs);
-  const employmentTypes = ['Salaried', 'Self-Employed', 'Freelancer', 'Business Owner'];
+  
+  const employmentTypes = [
+    t('Salaried'), 
+    t('Self-Employed'), 
+    t('Freelancer'), 
+    t('Business Owner')
+  ];
 
   const selectedLoanType = watch('loanType');
   const selectedAmount = watch('amount');
@@ -169,11 +180,11 @@ export default function LoanApplicationWizard() {
     clearDraftApplication();
     
     Alert.alert(
-      'Application Submitted',
-      `Your loan request ${appId} has been successfully submitted!`,
+      t('Application Submitted'),
+      t('Your loan request {{id}} has been successfully submitted!').replace('{{id}}', appId),
       [
         {
-          text: 'View Status',
+          text: t('View Status'),
           onPress: () => router.replace(`/application/${appId}` as any),
         },
       ]
@@ -185,8 +196,8 @@ export default function LoanApplicationWizard() {
       case 1: {
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Select Loan Type</Text>
-            <Text style={styles.stepDesc}>What type of credit access do you need?</Text>
+            <Text style={styles.stepTitle}>{t("Select Loan Type")}</Text>
+            <Text style={styles.stepDesc}>{t("What type of credit access do you need?")}</Text>
             
             <View style={styles.optionsGrid}>
               {loanTypes.map((type) => (
@@ -205,12 +216,12 @@ export default function LoanApplicationWizard() {
                       selectedLoanType === type && styles.optionTextSelected,
                     ]}
                   >
-                    {type}
+                    {t(type)}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-            {errors.loanType && <Text style={styles.errorText}>{errors.loanType.message}</Text>}
+            {errors.loanType && <Text style={styles.errorText}>{t(errors.loanType.message || '')}</Text>}
           </View>
         );
       }
@@ -226,11 +237,11 @@ export default function LoanApplicationWizard() {
         
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Configure Loan Amount</Text>
-            <Text style={styles.stepDesc}>Adjust parameters to match your repayment comfort.</Text>
+            <Text style={styles.stepTitle}>{t("Configure Loan Amount")}</Text>
+            <Text style={styles.stepDesc}>{t("Adjust parameters to match your repayment comfort.")}</Text>
             
             <View style={styles.formGroup}>
-              <Text style={styles.inputLabel}>DESIRED AMOUNT (₹)</Text>
+              <Text style={styles.inputLabel}>{t("DESIRED AMOUNT (₹)")}</Text>
               <View style={styles.incrementContainer}>
                 <TouchableOpacity 
                   style={styles.incrementBtn} 
@@ -247,6 +258,7 @@ export default function LoanApplicationWizard() {
                     const num = Number(val.replace(/[^0-9]/g, ''));
                     setValue('amount', Math.min(currentConfig.maxAmount, Math.max(0, num)));
                   }}
+                  placeholderTextColor={colors.textMuted}
                 />
                 <TouchableOpacity 
                   style={styles.incrementBtn} 
@@ -257,14 +269,14 @@ export default function LoanApplicationWizard() {
                 </TouchableOpacity>
               </View>
               <View style={styles.sliderLimitRow}>
-                <Text style={styles.limitLabel}>Min: ₹{currentConfig.minAmount.toLocaleString('en-IN')}</Text>
-                <Text style={styles.limitLabel}>Max: ₹{currentConfig.maxAmount.toLocaleString('en-IN')}</Text>
+                <Text style={styles.limitLabel}>{t("Min: ₹{{min}}").replace('{{min}}', currentConfig.minAmount.toLocaleString('en-IN'))}</Text>
+                <Text style={styles.limitLabel}>{t("Max: ₹{{max}}").replace('{{max}}', currentConfig.maxAmount.toLocaleString('en-IN'))}</Text>
               </View>
               {errors.amount && <Text style={styles.errorText}>{errors.amount.message}</Text>}
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.inputLabel}>REPAYMENT TENURE (MONTHS)</Text>
+              <Text style={styles.inputLabel}>{t("REPAYMENT TENURE (MONTHS)")}</Text>
               <View style={styles.incrementContainer}>
                 <TouchableOpacity 
                   style={styles.incrementBtn} 
@@ -281,6 +293,7 @@ export default function LoanApplicationWizard() {
                     const num = Number(val.replace(/[^0-9]/g, ''));
                     setValue('tenure', Math.min(currentConfig.maxTenure, Math.max(0, num)));
                   }}
+                  placeholderTextColor={colors.textMuted}
                 />
                 <TouchableOpacity 
                   style={styles.incrementBtn} 
@@ -291,8 +304,8 @@ export default function LoanApplicationWizard() {
                 </TouchableOpacity>
               </View>
               <View style={styles.sliderLimitRow}>
-                <Text style={styles.limitLabel}>Min: {currentConfig.minTenure} Months</Text>
-                <Text style={styles.limitLabel}>Max: {currentConfig.maxTenure} Months</Text>
+                <Text style={styles.limitLabel}>{t("Min: {{min}} Months").replace('{{min}}', String(currentConfig.minTenure))}</Text>
+                <Text style={styles.limitLabel}>{t("Max: {{max}} Months").replace('{{max}}', String(currentConfig.maxTenure))}</Text>
               </View>
               {errors.tenure && <Text style={styles.errorText}>{errors.tenure.message}</Text>}
             </View>
@@ -303,11 +316,11 @@ export default function LoanApplicationWizard() {
       case 3: {
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Employment Details</Text>
-            <Text style={styles.stepDesc}>Please tell us about your current job profile.</Text>
+            <Text style={styles.stepTitle}>{t("Employment Details")}</Text>
+            <Text style={styles.stepDesc}>{t("Please tell us about your current job profile.")}</Text>
 
             <View style={styles.formGroup}>
-              <Text style={styles.inputLabel}>EMPLOYMENT TYPE</Text>
+              <Text style={styles.inputLabel}>{t("EMPLOYMENT TYPE")}</Text>
               <View style={styles.horizontalPills}>
                 {employmentTypes.map((type) => (
                   <TouchableOpacity
@@ -330,65 +343,65 @@ export default function LoanApplicationWizard() {
                   </TouchableOpacity>
                 ))}
               </View>
-              {errors.employmentType && <Text style={styles.errorText}>{errors.employmentType.message}</Text>}
+              {errors.employmentType && <Text style={styles.errorText}>{t(errors.employmentType.message || '')}</Text>}
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.inputLabel}>COMPANY NAME</Text>
+              <Text style={styles.inputLabel}>{t("COMPANY NAME")}</Text>
               <Controller
                 control={control}
                 name="companyName"
                 render={({ field: { value, onChange, onBlur } }) => (
                   <TextInput
                     style={styles.textInput}
-                    placeholder="e.g. Google India"
+                    placeholder={t("e.g. Google India")}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    placeholderTextColor="#999"
+                    placeholderTextColor={colors.textMuted}
                   />
                 )}
               />
-              {errors.companyName && <Text style={styles.errorText}>{errors.companyName.message}</Text>}
+              {errors.companyName && <Text style={styles.errorText}>{t(errors.companyName.message || '')}</Text>}
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.inputLabel}>DESIGNATION</Text>
+              <Text style={styles.inputLabel}>{t("DESIGNATION")}</Text>
               <Controller
                 control={control}
                 name="designation"
                 render={({ field: { value, onChange, onBlur } }) => (
                   <TextInput
                     style={styles.textInput}
-                    placeholder="e.g. Software Engineer"
+                    placeholder={t("e.g. Software Engineer")}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    placeholderTextColor="#999"
+                    placeholderTextColor={colors.textMuted}
                   />
                 )}
               />
-              {errors.designation && <Text style={styles.errorText}>{errors.designation.message}</Text>}
+              {errors.designation && <Text style={styles.errorText}>{t(errors.designation.message || '')}</Text>}
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.inputLabel}>WORK EXPERIENCE (YEARS)</Text>
+              <Text style={styles.inputLabel}>{t("WORK EXPERIENCE (YEARS)")}</Text>
               <Controller
                 control={control}
                 name="experience"
                 render={({ field: { value, onChange, onBlur } }) => (
                   <TextInput
                     style={styles.textInput}
-                    placeholder="e.g. 4"
+                    placeholder={t("e.g. 4")}
                     keyboardType="numeric"
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    placeholderTextColor="#999"
+                    placeholderTextColor={colors.textMuted}
                   />
                 )}
               />
-              {errors.experience && <Text style={styles.errorText}>{errors.experience.message}</Text>}
+              {errors.experience && <Text style={styles.errorText}>{t(errors.experience.message || '')}</Text>}
             </View>
           </View>
         );
@@ -397,33 +410,33 @@ export default function LoanApplicationWizard() {
       case 4: {
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Income Parameters</Text>
-            <Text style={styles.stepDesc}>State your verified net monthly cash inflow.</Text>
+            <Text style={styles.stepTitle}>{t("Income Parameters")}</Text>
+            <Text style={styles.stepDesc}>{t("State your verified net monthly cash inflow.")}</Text>
 
             <View style={styles.formGroup}>
-              <Text style={styles.inputLabel}>NET MONTHLY SALARY (₹)</Text>
+              <Text style={styles.inputLabel}>{t("NET MONTHLY SALARY (₹)")}</Text>
               <Controller
                 control={control}
                 name="monthlySalary"
                 render={({ field: { value, onChange, onBlur } }) => (
                   <TextInput
                     style={styles.textInput}
-                    placeholder="e.g. 75000"
+                    placeholder={t("e.g. 75000")}
                     keyboardType="numeric"
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    placeholderTextColor="#999"
+                    placeholderTextColor={colors.textMuted}
                   />
                 )}
               />
-              {errors.monthlySalary && <Text style={styles.errorText}>{errors.monthlySalary.message}</Text>}
+              {errors.monthlySalary && <Text style={styles.errorText}>{t(errors.monthlySalary.message || '')}</Text>}
             </View>
 
             <View style={styles.infoBox}>
-              <Text style={styles.infoTitle}>Why do we need this?</Text>
+              <Text style={styles.infoTitle}>{t("Why do we need this?")}</Text>
               <Text style={styles.infoText}>
-                Regulated lenders use your income levels to ensure you are not overburdened with debt ratios.
+                {t("Regulated lenders use your income levels to ensure you are not overburdened with debt ratios.")}
               </Text>
             </View>
           </View>
@@ -433,41 +446,41 @@ export default function LoanApplicationWizard() {
       case 5: {
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Residential Address</Text>
-            <Text style={styles.stepDesc}>Enter your current operational residential location.</Text>
+            <Text style={styles.stepTitle}>{t("Residential Address")}</Text>
+            <Text style={styles.stepDesc}>{t("Enter your current operational residential location.")}</Text>
 
             <View style={styles.formGroup}>
-              <Text style={styles.inputLabel}>ADDRESS LINE 1</Text>
+              <Text style={styles.inputLabel}>{t("ADDRESS LINE 1")}</Text>
               <Controller
                 control={control}
                 name="addressLine1"
                 render={({ field: { value, onChange, onBlur } }) => (
                   <TextInput
                     style={styles.textInput}
-                    placeholder="Flat No, Wing, Building Name"
+                    placeholder={t("Flat No, Wing, Building Name")}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    placeholderTextColor="#999"
+                    placeholderTextColor={colors.textMuted}
                   />
                 )}
               />
-              {errors.addressLine1 && <Text style={styles.errorText}>{errors.addressLine1.message}</Text>}
+              {errors.addressLine1 && <Text style={styles.errorText}>{t(errors.addressLine1.message || '')}</Text>}
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.inputLabel}>ADDRESS LINE 2 (OPTIONAL)</Text>
+              <Text style={styles.inputLabel}>{t("ADDRESS LINE 2 (OPTIONAL)")}</Text>
               <Controller
                 control={control}
                 name="addressLine2"
                 render={({ field: { value, onChange, onBlur } }) => (
                   <TextInput
                     style={styles.textInput}
-                    placeholder="Street Name, Landmark"
+                    placeholder={t("Street Name, Landmark")}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    placeholderTextColor="#999"
+                    placeholderTextColor={colors.textMuted}
                   />
                 )}
               />
@@ -475,63 +488,63 @@ export default function LoanApplicationWizard() {
 
             <View style={styles.addressGrid}>
               <View style={[styles.formGroup, { width: '48%' }]}>
-                <Text style={styles.inputLabel}>PINCODE</Text>
+                <Text style={styles.inputLabel}>{t("PINCODE")}</Text>
                 <Controller
                   control={control}
                   name="pincode"
                   render={({ field: { value, onChange, onBlur } }) => (
                     <TextInput
                       style={styles.textInput}
-                      placeholder="e.g. 400001"
+                      placeholder={t("e.g. 400001")}
                       keyboardType="numeric"
                       maxLength={6}
                       value={value}
                       onChangeText={onChange}
                       onBlur={onBlur}
-                      placeholderTextColor="#999"
+                      placeholderTextColor={colors.textMuted}
                     />
                   )}
                 />
-                {errors.pincode && <Text style={styles.errorText}>{errors.pincode.message}</Text>}
+                {errors.pincode && <Text style={styles.errorText}>{t(errors.pincode.message || '')}</Text>}
               </View>
 
               <View style={[styles.formGroup, { width: '48%' }]}>
-                <Text style={styles.inputLabel}>CITY</Text>
+                <Text style={styles.inputLabel}>{t("CITY")}</Text>
                 <Controller
                   control={control}
                   name="city"
                   render={({ field: { value, onChange, onBlur } }) => (
                     <TextInput
                       style={styles.textInput}
-                      placeholder="e.g. Mumbai"
+                      placeholder={t("e.g. Mumbai")}
                       value={value}
                       onChangeText={onChange}
                       onBlur={onBlur}
-                      placeholderTextColor="#999"
+                      placeholderTextColor={colors.textMuted}
                     />
                   )}
                 />
-                {errors.city && <Text style={styles.errorText}>{errors.city.message}</Text>}
+                {errors.city && <Text style={styles.errorText}>{t(errors.city.message || '')}</Text>}
               </View>
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.inputLabel}>STATE</Text>
+              <Text style={styles.inputLabel}>{t("STATE")}</Text>
               <Controller
                 control={control}
                 name="state"
                 render={({ field: { value, onChange, onBlur } }) => (
                   <TextInput
                     style={styles.textInput}
-                    placeholder="e.g. Maharashtra"
+                    placeholder={t("e.g. Maharashtra")}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    placeholderTextColor="#999"
+                    placeholderTextColor={colors.textMuted}
                   />
                 )}
               />
-              {errors.state && <Text style={styles.errorText}>{errors.state.message}</Text>}
+              {errors.state && <Text style={styles.errorText}>{t(errors.state.message || '')}</Text>}
             </View>
           </View>
         );
@@ -541,33 +554,33 @@ export default function LoanApplicationWizard() {
         const currentVals = watch();
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Confirm Application Details</Text>
-            <Text style={styles.stepDesc}>Review parameters before submitting to the underwriting engine.</Text>
+            <Text style={styles.stepTitle}>{t("Confirm Application Details")}</Text>
+            <Text style={styles.stepDesc}>{t("Review parameters before submitting to the underwriting engine.")}</Text>
 
             <View style={styles.summaryCard}>
-              <Text style={styles.summarySectionTitle}>LOAN DETAILS</Text>
-              <SummaryRow label="Loan Type" value={currentVals.loanType} />
-              <SummaryRow label="Loan Amount" value={`₹${currentVals.amount.toLocaleString('en-IN')}`} />
-              <SummaryRow label="Requested Tenure" value={`${currentVals.tenure} Months`} />
+              <Text style={styles.summarySectionTitle}>{t("LOAN DETAILS")}</Text>
+              <SummaryRow label={t("Loan Type")} value={t(currentVals.loanType)} colors={colors} styles={styles} />
+              <SummaryRow label={t("Loan Amount")} value={`₹${currentVals.amount.toLocaleString('en-IN')}`} colors={colors} styles={styles} />
+              <SummaryRow label={t("Requested Tenure")} value={t("{{months}} Months").replace('{{months}}', String(currentVals.tenure))} colors={colors} styles={styles} />
               
               <View style={styles.summaryDivider} />
 
-              <Text style={styles.summarySectionTitle}>EMPLOYMENT & INCOME</Text>
-              <SummaryRow label="Work Category" value={currentVals.employmentType} />
-              <SummaryRow label="Company Name" value={currentVals.companyName} />
-              <SummaryRow label="Designation" value={currentVals.designation} />
-              <SummaryRow label="Total Experience" value={`${currentVals.experience} Years`} />
-              <SummaryRow label="Monthly Salary" value={`₹${Number(currentVals.monthlySalary).toLocaleString('en-IN')}`} />
+              <Text style={styles.summarySectionTitle}>{t("EMPLOYMENT & INCOME")}</Text>
+              <SummaryRow label={t("Work Category")} value={t(currentVals.employmentType)} colors={colors} styles={styles} />
+              <SummaryRow label={t("Company Name")} value={currentVals.companyName} colors={colors} styles={styles} />
+              <SummaryRow label={t("Designation")} value={currentVals.designation} colors={colors} styles={styles} />
+              <SummaryRow label={t("Total Experience")} value={t("{{years}} Years").replace('{{years}}', currentVals.experience)} colors={colors} styles={styles} />
+              <SummaryRow label={t("Monthly Salary")} value={`₹${Number(currentVals.monthlySalary).toLocaleString('en-IN')}`} colors={colors} styles={styles} />
 
               <View style={styles.summaryDivider} />
 
-              <Text style={styles.summarySectionTitle}>ADDRESS PROFILE</Text>
-              <SummaryRow label="Address" value={`${currentVals.addressLine1}${currentVals.addressLine2 ? ', ' + currentVals.addressLine2 : ''}`} />
-              <SummaryRow label="Location" value={`${currentVals.city}, ${currentVals.state} - ${currentVals.pincode}`} />
+              <Text style={styles.summarySectionTitle}>{t("ADDRESS PROFILE")}</Text>
+              <SummaryRow label={t("Address")} value={`${currentVals.addressLine1}${currentVals.addressLine2 ? ', ' + currentVals.addressLine2 : ''}`} colors={colors} styles={styles} />
+              <SummaryRow label={t("Location")} value={`${currentVals.city}, ${currentVals.state} - ${currentVals.pincode}`} colors={colors} styles={styles} />
             </View>
 
             <Text style={styles.legalDisclaimer}>
-              By proceeding, you consent to Udofin retrieving your credit bureau (CIBIL/Experian) history to match you with registered partner bank offers.
+              {t("By proceeding, you consent to Udofin retrieving your credit bureau (CIBIL/Experian) history to match you with registered partner bank offers.")}
             </Text>
           </View>
         );
@@ -580,7 +593,7 @@ export default function LoanApplicationWizard() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header title="Apply for Loan" onBackPress={onPrevStep} />
+      <Header title={t("Apply for Loan")} onBackPress={onPrevStep} />
       
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <ProgressStepper activeStep={activeStep} totalSteps={6} stepLabels={stepLabels} />
@@ -591,9 +604,9 @@ export default function LoanApplicationWizard() {
       {/* Footer Navigation */}
       <View style={styles.footer}>
         {activeStep < 6 ? (
-          <Button title="Continue" onPress={onNextStep} />
+          <Button title={t("Continue")} onPress={onNextStep} />
         ) : (
-          <Button title="Submit Application" onPress={handleSubmit(onSubmitForm)} />
+          <Button title={t("Submit Application")} onPress={handleSubmit(onSubmitForm)} />
         )}
       </View>
     </SafeAreaView>
@@ -601,7 +614,7 @@ export default function LoanApplicationWizard() {
 }
 
 // Sub components
-function SummaryRow({ label, value }: { label: string; value: string }) {
+function SummaryRow({ label, value, colors, styles }: any) {
   return (
     <View style={styles.summaryRow}>
       <Text style={styles.summaryLabel}>{label}</Text>
@@ -610,10 +623,10 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     padding: 24,
@@ -625,12 +638,12 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#1F2937',
+    color: colors.text,
     marginBottom: 6,
   },
   stepDesc: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontWeight: '500',
     marginBottom: 24,
     lineHeight: 20,
@@ -640,22 +653,22 @@ const styles = StyleSheet.create({
   },
   optionCard: {
     borderWidth: 2,
-    borderColor: '#F3F4F6',
-    backgroundColor: '#FAFAFA',
+    borderColor: colors.surfaceBorder,
+    backgroundColor: colors.surface,
     padding: 18,
     borderRadius: 16,
   },
   optionCardSelected: {
-    borderColor: '#E47656',
-    backgroundColor: '#FFF5F2',
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
   },
   optionText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#4B5563',
+    color: colors.textSecondary,
   },
   optionTextSelected: {
-    color: '#E47656',
+    color: colors.primary,
   },
   formGroup: {
     marginBottom: 20,
@@ -663,7 +676,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     letterSpacing: 1,
     marginBottom: 8,
   },
@@ -676,7 +689,7 @@ const styles = StyleSheet.create({
   sliderValueText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#E47656',
+    color: colors.primary,
   },
   sliderLimitRow: {
     flexDirection: 'row',
@@ -685,7 +698,7 @@ const styles = StyleSheet.create({
   },
   limitLabel: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: colors.textMuted,
     fontWeight: '600',
   },
   horizontalPills: {
@@ -695,33 +708,33 @@ const styles = StyleSheet.create({
   },
   pill: {
     borderWidth: 1.5,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.surface,
   },
   pillSelected: {
-    borderColor: '#E47656',
-    backgroundColor: '#FFF5F2',
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
   },
   pillText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#4B5563',
+    color: colors.textSecondary,
   },
   pillTextSelected: {
-    color: '#E47656',
+    color: colors.primary,
   },
   textInput: {
     borderWidth: 1.5,
-    borderColor: '#EAEAEA',
-    backgroundColor: '#FAFAFA',
+    borderColor: colors.surfaceBorder,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
     fontSize: 14,
-    color: '#1F2937',
+    color: colors.text,
     fontWeight: '600',
   },
   addressGrid: {
@@ -729,7 +742,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   infoBox: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.primaryLight,
     borderRadius: 12,
     padding: 16,
     marginTop: 10,
@@ -737,33 +750,33 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1E40AF',
+    color: colors.primary,
     marginBottom: 4,
   },
   infoText: {
     fontSize: 12,
-    color: '#2563EB',
+    color: colors.primary,
     lineHeight: 16,
     fontWeight: '500',
   },
   errorText: {
     fontSize: 11,
-    color: '#DC2626',
+    color: colors.danger,
     fontWeight: '700',
     marginTop: 6,
   },
   summaryCard: {
     borderWidth: 1.5,
-    borderColor: '#EAEAEA',
+    borderColor: colors.surfaceBorder,
     borderRadius: 20,
     padding: 20,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.surface,
     marginBottom: 20,
   },
   summarySectionTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#9CA3AF',
+    color: colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 10,
   },
@@ -774,22 +787,24 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   summaryVal: {
     fontSize: 13,
-    color: '#1F2937',
+    color: colors.text,
     fontWeight: '700',
+    maxWidth: '60%',
+    textAlign: 'right'
   },
   summaryDivider: {
     height: 1,
-    backgroundColor: '#EAEAEA',
+    backgroundColor: colors.surfaceBorder,
     marginVertical: 14,
   },
   legalDisclaimer: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: colors.textMuted,
     textAlign: 'center',
     lineHeight: 16,
     fontWeight: '500',
@@ -798,8 +813,8 @@ const styles = StyleSheet.create({
   footer: {
     padding: 24,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    backgroundColor: '#FFFFFF',
+    borderTopColor: colors.divider,
+    backgroundColor: colors.background,
   },
   incrementContainer: {
     flexDirection: 'row',
@@ -811,14 +826,14 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#E47656',
-    backgroundColor: '#FFF5F2',
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
   incrementBtnText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#E47656',
+    color: colors.primary,
   },
 });

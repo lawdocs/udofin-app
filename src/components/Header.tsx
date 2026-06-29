@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../lib/theme';
 
 interface HeaderProps {
   title: string;
@@ -12,6 +13,8 @@ interface HeaderProps {
 
 export default function Header({ title, showBack = true, onBackPress, rightElement }: HeaderProps) {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
 
   const handleBack = () => {
     if (onBackPress) {
@@ -25,7 +28,7 @@ export default function Header({ title, showBack = true, onBackPress, rightEleme
     <View style={styles.header}>
       {showBack ? (
         <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
-          <ChevronLeft color="#333" size={24} />
+          <ChevronLeft color={colors.text} size={24} />
         </TouchableOpacity>
       ) : (
         <View style={styles.placeholder} />
@@ -44,7 +47,7 @@ export default function Header({ title, showBack = true, onBackPress, rightEleme
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -53,18 +56,18 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 12 : 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: colors.surfaceBorder,
+    backgroundColor: colors.surface,
   },
   backButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: '#F7F7F9',
+    backgroundColor: colors.background,
   },
   title: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1A1A1A',
+    color: colors.text,
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 16,
