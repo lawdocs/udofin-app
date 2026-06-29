@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import Header from '../components/Header';
 import { useLoanStore } from '../store/loanStore';
 import { supabase } from '../lib/supabase';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { ChevronRight, Trash2, Globe, Moon } from 'lucide-react-native';
 import { useTranslation } from '../lib/i18n';
 import { useTheme } from '../lib/theme';
@@ -33,7 +34,11 @@ export default function SettingsScreen() {
   const [theme, setTheme] = useState('System');
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
-
+  
+  // Biometric capabilities
+  const [hardwareSupported, setHardwareSupported] = useState(false);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [biometricType, setBiometricType] = useState<'fingerprint' | 'face' | 'none'>('none');
 
   // Load settings from Supabase on mount
   useEffect(() => {
@@ -55,6 +60,21 @@ export default function SettingsScreen() {
           setBiometricsEnabled(data.biometrics_enabled ?? false);
           setLanguage(data.language || 'English');
           setTheme(data.theme || 'System');
+        }
+
+        // Check hardware capabilities
+        const hasHardware = await LocalAuthentication.hasHardwareAsync();
+        setHardwareSupported(hasHardware);
+        const enrolled = await LocalAuthentication.isEnrolledAsync();
+        setIsEnrolled(enrolled);
+        
+        if (hasHardware) {
+          const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
+          if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+            setBiometricType('face');
+          } else if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+            setBiometricType('fingerprint');
+          }
         }
       } catch (e) {
         console.error('[Settings] Error loading settings:', e);
@@ -86,12 +106,21 @@ export default function SettingsScreen() {
   };
 
   const handleToggleBiometrics = (val: boolean) => {
+    if (!hardwareSupported) {
+       Alert.alert(t('Not Supported'), t('Your device does not have biometric sensors (Face ID / Fingerprint).'));
+       return;
+    }
+    if (!isEnrolled) {
+       Alert.alert(t('Not Setup'), t('Please set up Face ID or Fingerprint in your device settings first.'));
+       return;
+    }
+    
     setBiometricsEnabled(val);
     persistSetting('biometrics_enabled', val);
     if (val) {
       Alert.alert(
         t('Biometric Unlock Enabled'),
-        t('Next time you open the app with an active session, you will be asked to authenticate with Face ID or Fingerprint.'),
+        t('Next time you open the app with an active session, you will be asked to authenticate with') + ' ' + (biometricType === 'face' ? t('Face ID') : t('Fingerprint')) + '.',
       );
     }
   };
@@ -181,12 +210,13 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>{t("SECURITY")}</Text>
         <View style={styles.settingCard}>
           <SettingToggle
-            title={t("Biometric Unlock")}
-            description={t("Use Face ID or Fingerprint to unlock your dashboard")}
+            title={biometricType === 'face' ? t("Face ID Unlock") : biometricType === 'fingerprint' ? t("Fingerprint Unlock") : t("Biometric Unlock")}
+            description={t("Use") + ' ' + (biometricType === 'face' ? t("Face ID") : biometricType === 'fingerprint' ? t("Fingerprint") : t("biometrics")) + ' ' + t("to unlock your dashboard")}
             value={biometricsEnabled}
             onToggle={handleToggleBiometrics}
             colors={colors}
             styles={styles}
+            disabled={!hardwareSupported || !isEnrolled}
           />
         </View>
 
@@ -279,16 +309,19 @@ export default function SettingsScreen() {
 }
 
 // Toggle row sub-component
-function SettingToggle({ title, description, value, onToggle, colors, styles }: any) {
+function SettingToggle({ title, description, value, onToggle, colors, styles, disabled }: any) {
   return (
-    <View style={styles.toggleRow}>
+    <View style={[styles.toggleRow, disabled && { opacity: 0.5 }]}>
       <View style={{ flex: 1, marginRight: 10 }}>
         <Text style={styles.toggleTitle}>{title}</Text>
         <Text style={styles.toggleDesc}>{description}</Text>
       </View>
       <Switch
         value={value}
-        onValueChange={onToggle}
+        onValueChange={(val) => {
+           if (disabled) onToggle(val); // This will trigger the alert inside handleToggleBiometrics
+           else onToggle(val);
+        }}
         trackColor={{ false: colors.surfaceBorder, true: colors.primaryBorder }}
         thumbColor={value ? colors.primary : colors.surface}
       />

@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, TextInput, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';;
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Check, FingerprintPattern } from 'lucide-react-native';
+import { ChevronLeft, Check, FingerprintPattern, ScanFace } from 'lucide-react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useOnboardingStore } from '../../store/onboardingStore';
 import { useAuthStore } from '../../store/authStore';
@@ -325,6 +325,16 @@ export default function OnboardingWizard() {
       }
       
       // Check if device supports biometrics
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      
+      if (!hasHardware || !isEnrolled) {
+        // No hardware or user hasn't set it up in OS settings, skip
+        setAppLocked(false);
+        router.replace('/(tabs)/home');
+        return;
+      }
+
       const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
       if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
         setBiometricType('face');
@@ -575,7 +585,11 @@ export default function OnboardingWizard() {
       
       <View style={{ alignItems: 'center', marginTop: 40, marginBottom: 40 }}>
         <View style={styles.iconCircle}>
-          <FingerprintPattern color={colors.primary} size={64} />
+          {biometricType === 'face' ? (
+             <ScanFace color={colors.primary} size={64} />
+          ) : (
+             <FingerprintPattern color={colors.primary} size={64} />
+          )}
         </View>
       </View>
     </View>
