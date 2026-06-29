@@ -21,10 +21,14 @@ export interface LoanTypeConfig {
 
 export const loanTypeConfigs: Record<string, LoanTypeConfig> = {
   'Personal Loan': { minAmount: 10000, maxAmount: 500000, minTenure: 6, maxTenure: 60, stepAmount: 10000, stepTenure: 3 },
-  'Loan Against Property (LAP)': { minAmount: 500000, maxAmount: 5000000, minTenure: 12, maxTenure: 84, stepAmount: 50000, stepTenure: 12 },
+  'Business Loan': { minAmount: 100000, maxAmount: 5000000, minTenure: 12, maxTenure: 60, stepAmount: 50000, stepTenure: 6 },
+  'Home Loan': { minAmount: 1000000, maxAmount: 50000000, minTenure: 60, maxTenure: 240, stepAmount: 100000, stepTenure: 12 },
+  'Gold Loan': { minAmount: 10000, maxAmount: 1000000, minTenure: 3, maxTenure: 24, stepAmount: 5000, stepTenure: 3 },
   'New Vehicle Loan': { minAmount: 100000, maxAmount: 1500000, minTenure: 12, maxTenure: 84, stepAmount: 25000, stepTenure: 12 },
   'Used Vehicle Loan': { minAmount: 50000, maxAmount: 800000, minTenure: 12, maxTenure: 60, stepAmount: 10000, stepTenure: 6 },
-  'Gold Loan': { minAmount: 10000, maxAmount: 1000000, minTenure: 3, maxTenure: 24, stepAmount: 5000, stepTenure: 3 },
+  'Education Loan': { minAmount: 50000, maxAmount: 2000000, minTenure: 12, maxTenure: 84, stepAmount: 25000, stepTenure: 6 },
+  'MSME Loan': { minAmount: 200000, maxAmount: 5000000, minTenure: 12, maxTenure: 60, stepAmount: 50000, stepTenure: 6 },
+  'Loan Against Property (LAP)': { minAmount: 500000, maxAmount: 5000000, minTenure: 12, maxTenure: 84, stepAmount: 50000, stepTenure: 12 },
   'Plot Loan': { minAmount: 300000, maxAmount: 3000000, minTenure: 12, maxTenure: 84, stepAmount: 50000, stepTenure: 12 },
   'Consumer Durable Loan': { minAmount: 5000, maxAmount: 150000, minTenure: 3, maxTenure: 24, stepAmount: 2500, stepTenure: 3 },
 };

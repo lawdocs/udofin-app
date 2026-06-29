@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bell, Wallet, Sparkles, ClipboardList, Info, HelpCircle } from 'lucide-react-native';
+import { Bell, Wallet, Sparkles, ClipboardList, HelpCircle, Calculator, BookOpen, CheckCircle, ArrowRight, Activity } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useLoanStore } from '../../store/loanStore';
 import { useOnboardingStore } from '../../store/onboardingStore';
@@ -13,166 +13,146 @@ import { useTranslation } from '../../lib/i18n';
 export default function HomeScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
-  const styles = getStyles(colors);
+  const styles = getStyles(colors, isDark);
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
   const { activeLoan, applications, notifications } = useLoanStore();
   const { email } = useOnboardingStore();
   
-  // Find ongoing (incomplete) applications
   const activeApp = applications.find(
     (app) => app.status !== 'completed' && app.status !== 'disbursed'
   );
   
-  // Unread notification count
   const unreadCount = notifications.filter((n) => !n.read).length;
-
   const displayName = email ? email.split('@')[0] : t('Borrower');
 
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top }]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={colors.background} />
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
-        {/* Header Row */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.welcomeText}>{t("WELCOME BACK")}</Text>
-            <View style={styles.nameRow}>
-              <Text style={styles.nameText}>{displayName}</Text>
-              <View style={styles.onlineDot} />
-            </View>
-          </View>
-          
-          <TouchableOpacity 
-            style={styles.notificationBtn} 
-            onPress={() => router.push('/(tabs)/notifications')}
-            activeOpacity={0.7}
-          >
-            <Bell color={colors.primary} size={22} />
-            {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount}</Text>
-              </View>
-            )}
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={isDark ? colors.surface : '#FFFFFF'} />
+      
+      {/* SaaS Dashboard Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.greetingText}>{t("Good morning")},</Text>
+          <Text style={styles.nameText}>{displayName}</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/(tabs)/notifications')} activeOpacity={0.7}>
+            <Bell color={colors.text} size={20} />
+            {unreadCount > 0 && <View style={styles.badge} />}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.avatarBtn} onPress={() => router.push('/(tabs)/profile')} activeOpacity={0.9}>
+            <Text style={styles.avatarInitial}>{displayName.charAt(0).toUpperCase()}</Text>
           </TouchableOpacity>
         </View>
+      </View>
 
-        {/* Loan Card (Active Loan) */}
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        
+        {/* Main Dashboard Widget */}
         {activeLoan ? (
-          <LoanCard
-            lenderName={activeLoan.lenderName}
-            outstandingAmount={activeLoan.outstandingAmount}
-            totalAmount={activeLoan.totalAmount}
-            nextEmiDate={activeLoan.nextEmiDate}
-            nextEmiAmount={activeLoan.nextEmiAmount}
-            paidTenure={activeLoan.paidTenure}
-            totalTenure={activeLoan.totalTenure}
-            onPress={() => router.push('/(tabs)/loan')}
-          />
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t("Active Portfolio")}</Text>
+            <LoanCard
+              lenderName={activeLoan.lenderName}
+              outstandingAmount={activeLoan.outstandingAmount}
+              totalAmount={activeLoan.totalAmount}
+              nextEmiDate={activeLoan.nextEmiDate}
+              nextEmiAmount={activeLoan.nextEmiAmount}
+              paidTenure={activeLoan.paidTenure}
+              totalTenure={activeLoan.totalTenure}
+              onPress={() => router.push('/(tabs)/loan')}
+            />
+          </View>
         ) : (
-          /* Eligibility Card if no active loan */
-          <View style={styles.eligibilityCard}>
-            <View style={styles.eligibilityHeader}>
-              <Sparkles color={colors.primary} size={24} />
-              <Text style={styles.eligibilityLabel}>{t("CREDIT OFFER FOR YOU")}</Text>
+          <View style={styles.heroCard}>
+            <View style={styles.heroContent}>
+              <View style={styles.heroBadge}>
+                <Sparkles color="#FFFFFF" size={14} />
+                <Text style={styles.heroBadgeText}>{t("PRE-APPROVED")}</Text>
+              </View>
+              <Text style={styles.heroTitle}>{t("Unlock Your Credit Limit")}</Text>
+              <Text style={styles.heroDesc}>
+                {t("Access up to ₹50 Lakhs from premium lenders with zero impact on your CIBIL score.")}
+              </Text>
             </View>
-            <Text style={styles.eligibilityTitle}>{t("Check Your Loan Eligibility")}</Text>
-            <Text style={styles.eligibilityDesc}>
-              {t("Get matched with 10+ RBI-regulated lenders in under 10 seconds. Zero credit score impact.")}
-            </Text>
             <TouchableOpacity 
-              style={styles.applyBtn} 
+              style={styles.heroBtn} 
               onPress={() => router.push('/loan-application' as any)}
               activeOpacity={0.9}
             >
-              <Text style={styles.applyBtnText}>{t("Apply Now")}</Text>
+              <Text style={styles.heroBtnText}>{t("Check Eligibility")}</Text>
+              <ArrowRight color={colors.primary} size={18} />
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Active Application Status Tracker */}
+        {/* Application Tracker */}
         {activeApp && (
-          <TouchableOpacity 
-            style={styles.statusCard}
-            onPress={() => router.push(`/application/${activeApp.id}` as any)}
-            activeOpacity={0.9}
-          >
-            <View style={styles.statusHeader}>
-              <View style={styles.statusHeaderLeft}>
-                <ClipboardList color={colors.primary} size={20} />
-                <Text style={styles.statusTitle}>{t("Active Application")}</Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t("Recent Activity")}</Text>
+            <TouchableOpacity 
+              style={styles.trackerCard}
+              onPress={() => router.push(`/application/${activeApp.id}` as any)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.trackerHeader}>
+                <View style={styles.trackerIconBox}>
+                  <Activity color={colors.primary} size={18} />
+                </View>
+                <View style={styles.trackerInfo}>
+                  <Text style={styles.trackerTitle}>{t("Loan Application")}</Text>
+                  <Text style={styles.trackerSub}>₹{activeApp.amount.toLocaleString('en-IN')} • ID: {activeApp.id}</Text>
+                </View>
+                <StatusBadge status={activeApp.status} />
               </View>
-              <StatusBadge status={activeApp.status} />
-            </View>
-            
-            <View style={styles.statusBody}>
-              <View style={styles.statusItemRow}>
-                <Text style={styles.statusLabel}>{t("ID:")}</Text>
-                <Text style={styles.statusValue}>{activeApp.id}</Text>
-              </View>
-              <View style={styles.statusItemRow}>
-                <Text style={styles.statusLabel}>{t("Amount Requested:")}</Text>
-                <Text style={styles.statusValue}>₹{activeApp.amount.toLocaleString('en-IN')}</Text>
-              </View>
-            </View>
-
-            <View style={styles.statusFooter}>
-              <Info color={colors.primary} size={14} />
-              <Text style={styles.statusFooterText}>{t("Click to track progress and complete setup.")}</Text>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
         )}
 
-        {/* Quick Actions Grid */}
-        <Text style={styles.sectionTitle}>{t("QUICK ACTIONS")}</Text>
-        <View style={styles.actionsRow}>
-          <TouchableOpacity 
-            style={styles.actionItem} 
-            activeOpacity={0.7}
-            onPress={() => router.push('/emi' as any)}
-          >
-            <View style={[styles.actionCircle, { backgroundColor: colors.primaryLight }]}>
-              <Wallet color={colors.primary} size={24} />
-            </View>
-            <Text style={styles.actionLabel}>{t("Pay EMI")}</Text>
-          </TouchableOpacity>
+        {/* Workspace / Quick Actions */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{t("Workspace Tools")}</Text>
+            <TouchableOpacity onPress={() => router.push('/calculators' as any)}>
+              <Text style={styles.seeAllText}>{t("See all")}</Text>
+            </TouchableOpacity>
+          </View>
 
-          <TouchableOpacity 
-            style={styles.actionItem} 
-            activeOpacity={0.7}
-            onPress={() => router.push('/documents' as any)}
-          >
-            <View style={[styles.actionCircle, { backgroundColor: isDark ? '#1E3A8A' : '#E0F2FE' }]}>
-              <ClipboardList color={isDark ? '#93C5FD' : '#0284C7'} size={24} />
-            </View>
-            <Text style={styles.actionLabel}>{t("My Docs")}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.actionItem} 
-            activeOpacity={0.7}
-            onPress={() => router.push('/support')}
-          >
-            <View style={[styles.actionCircle, { backgroundColor: isDark ? '#4C1D95' : '#F5F3FF' }]}>
-              <HelpCircle color={isDark ? '#C4B5FD' : '#7C3AED'} size={24} />
-            </View>
-            <Text style={styles.actionLabel}>{t("Help & FAQs")}</Text>
-          </TouchableOpacity>
+          <View style={styles.gridContainer}>
+            {[
+              { id: 'emi', icon: Wallet, label: 'Pay EMI', desc: 'Make payment', route: '/emi', color: '#3B82F6' },
+              { id: 'docs', icon: ClipboardList, label: 'Documents', desc: 'KYC & Income', route: '/documents', color: '#8B5CF6' },
+              { id: 'calc_emi', icon: Calculator, label: 'EMI Calc', desc: 'Plan your loan', route: '/calculators/emi', color: '#10B981' },
+              { id: 'calc_elig', icon: CheckCircle, label: 'Eligibility', desc: 'Check limit', route: '/calculators/eligibility', color: '#F59E0B' },
+              { id: 'learn', icon: BookOpen, label: 'Learn', desc: 'Guides & tips', route: '/learn', color: '#06B6D4' },
+              { id: 'support', icon: HelpCircle, label: 'Support', desc: 'Get help', route: '/support', color: '#EC4899' },
+            ].map((item) => (
+              <TouchableOpacity 
+                key={item.id} 
+                style={styles.gridItem} 
+                onPress={() => router.push(item.route as any)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.gridIconBox, { backgroundColor: item.color + '15' }]}>
+                  <item.icon color={item.color} size={20} />
+                </View>
+                <Text style={styles.gridLabel}>{t(item.label)}</Text>
+                <Text style={styles.gridDesc}>{t(item.desc)}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        {/* Support Callout Box */}
-        <View style={styles.supportCallout}>
-          <Text style={styles.supportTitle}>{t("Need financial advice?")}</Text>
-          <Text style={styles.supportText}>
-            {t("Our AI Loan Advisor \"Fin\" can match you with appropriate bank offers. Check out the Support section or chat live.")}
-          </Text>
-          <TouchableOpacity 
-            style={styles.supportBtn}
-            onPress={() => router.push('/support')}
-          >
-            <Text style={styles.supportBtnText}>{t("Connect Now")}</Text>
+        {/* Support Banner */}
+        <View style={styles.supportBanner}>
+          <View style={styles.supportBannerLeft}>
+            <Text style={styles.supportBannerTitle}>{t("Need help with a loan?")}</Text>
+            <Text style={styles.supportBannerDesc}>{t("Talk to our financial advisors.")}</Text>
+          </View>
+          <TouchableOpacity style={styles.supportBannerBtn} onPress={() => router.push('/support')}>
+            <Text style={styles.supportBannerBtnText}>{t("Chat")}</Text>
           </TouchableOpacity>
         </View>
 
@@ -181,250 +161,263 @@ export default function HomeScreen() {
   );
 }
 
-const getStyles = (colors: any) => StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
+    backgroundColor: isDark ? colors.background : '#F9FAFB', // SaaS light gray canvas
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
-    marginTop: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: isDark ? colors.surface : '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: isDark ? colors.surfaceBorder : '#F3F4F6',
   },
-  welcomeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textMuted,
-    letterSpacing: 1.5,
-    marginBottom: 4,
+  headerLeft: {
+    justifyContent: 'center',
   },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  greetingText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '500',
+    marginBottom: 2,
   },
   nameText: {
-    fontSize: 24,
-    fontWeight: '900',
+    fontSize: 18,
+    fontWeight: '800',
     color: colors.text,
   },
-  onlineDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.primary,
-    marginLeft: 8,
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  notificationBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.surfaceBorder,
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: isDark ? colors.surfaceBorder : '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: 10,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.danger,
+    borderWidth: 2,
+    borderColor: isDark ? colors.surfaceBorder : '#F3F4F6',
+  },
+  avatarBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.primary,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 4,
   },
-  badgeText: {
+  avatarInitial: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  section: {
+    marginBottom: 28,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
     fontWeight: '800',
+    color: colors.text,
+  },
+  seeAllText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
   },
   
-  // Eligibility Card
-  eligibilityCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: colors.surfaceBorder,
-    marginBottom: 24,
-    boxShadow: `0px 6px 12px ${colors.primary}0D`,
-    elevation: 3,
-  },
-  eligibilityHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  eligibilityLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.primary,
-    letterSpacing: 1,
-  },
-  eligibilityTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  eligibilityDesc: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 18,
-    marginBottom: 20,
-    fontWeight: '500',
-  },
-  applyBtn: {
+  // Hero Card
+  heroCard: {
     backgroundColor: colors.primary,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 24,
+    overflow: 'hidden',
+    marginBottom: 28,
+    padding: 24,
+    boxShadow: `0px 10px 24px ${colors.primary}40`,
+    elevation: 8,
   },
-  applyBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-
-  // Active Application
-  statusCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: colors.surfaceBorder,
+  heroContent: {
     marginBottom: 24,
   },
-  statusHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-    paddingBottom: 14,
-    marginBottom: 14,
-  },
-  statusHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statusTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  statusBody: {
-    gap: 8,
-    marginBottom: 14,
-  },
-  statusItemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statusLabel: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  statusValue: {
-    fontSize: 13,
-    color: colors.text,
-    fontWeight: '700',
-  },
-  statusFooter: {
+  heroBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.primaryLight,
-    padding: 10,
-    borderRadius: 8,
-  },
-  statusFooterText: {
-    fontSize: 11,
-    color: colors.primary,
-    fontWeight: '700',
-  },
-
-  // Section title
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.textMuted,
-    letterSpacing: 1.5,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
     marginBottom: 16,
   },
-  
-  // Actions
-  actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
+  heroBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
-  actionItem: {
-    alignItems: 'center',
-    width: '30%',
-  },
-  actionCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
+  heroTitle: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '900',
     marginBottom: 8,
-    boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.03)',
-    elevation: 2,
+    lineHeight: 32,
   },
-  actionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.text,
+  heroDesc: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  heroBtn: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  heroBtnText: {
+    color: colors.primary,
+    fontSize: 15,
+    fontWeight: '800',
   },
 
-  // Support callout
-  supportCallout: {
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: 20,
+  // Tracker Card
+  trackerCard: {
+    backgroundColor: isDark ? colors.surface : '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
-    borderColor: colors.surfaceBorder,
+    borderColor: isDark ? colors.surfaceBorder : '#E5E7EB',
+    boxShadow: '0px 2px 8px rgba(0,0,0,0.04)',
+    elevation: 2,
   },
-  supportTitle: {
+  trackerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  trackerIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  trackerInfo: {
+    flex: 1,
+  },
+  trackerTitle: {
     fontSize: 15,
     fontWeight: '800',
     color: colors.text,
     marginBottom: 4,
   },
-  supportText: {
+  trackerSub: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+
+  // Grid
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  gridItem: {
+    width: '48%', // Approx half width minus gap
+    backgroundColor: isDark ? colors.surface : '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: isDark ? colors.surfaceBorder : '#E5E7EB',
+    boxShadow: '0px 2px 8px rgba(0,0,0,0.04)',
+    elevation: 2,
+  },
+  gridIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  gridLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  gridDesc: {
     fontSize: 12,
     color: colors.textSecondary,
-    lineHeight: 18,
     fontWeight: '500',
-    marginBottom: 14,
   },
-  supportBtn: {
-    backgroundColor: colors.primary,
+
+  // Support Banner
+  supportBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: isDark ? '#334155' : '#E2E8F0',
+  },
+  supportBannerLeft: {
+    flex: 1,
+  },
+  supportBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  supportBannerDesc: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  supportBannerBtn: {
+    backgroundColor: colors.text,
     paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    alignSelf: 'flex-start',
+    paddingHorizontal: 20,
+    borderRadius: 20,
   },
-  supportBtnText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
+  supportBannerBtnText: {
+    color: colors.background,
+    fontSize: 13,
+    fontWeight: '800',
   },
 });

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Header from '../../components/Header';
-import { User, Shield, Settings, FileText, HeartHandshake, LogOut, ChevronRight, Smartphone, Lock, Key, FingerprintPattern } from 'lucide-react-native';
+import { User, Shield, Settings, FileText, HeartHandshake, LogOut, ChevronRight, Smartphone, Lock, Key, FingerprintPattern, Calculator, BookOpen, Scale, Info } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { useOnboardingStore } from '../../store/onboardingStore';
 import { useTheme } from '../../lib/theme';
@@ -174,6 +174,93 @@ export default function ProfileScreen() {
           />
         </View>
 
+        {/* TOOLS & RESOURCES */}
+        <View style={styles.menuContainer}>
+          <Text style={styles.menuSectionTitle}>{t('TOOLS & RESOURCES')}</Text>
+
+          <MenuItem
+            icon={<Calculator color={colors.primary} size={20} />}
+            title={t('Financial Calculators')}
+            subtitle={t('EMI, Eligibility, Interest, Credit Score')}
+            onPress={() => router.push('/calculators' as any)}
+            colors={colors}
+            styles={styles}
+          />
+          <MenuItem
+            icon={<BookOpen color={colors.primary} size={20} />}
+            title={t('Learn & Finance')}
+            subtitle={t('Guides, RBI updates, Credit Score tips')}
+            onPress={() => router.push('/learn' as any)}
+            isLast
+            colors={colors}
+            styles={styles}
+          />
+        </View>
+
+        {/* LEGAL */}
+        <View style={styles.menuContainer}>
+          <Text style={styles.menuSectionTitle}>{t('LEGAL')}</Text>
+
+          <MenuItem
+            icon={<Shield color={colors.primary} size={20} />}
+            title={t('Privacy Policy')}
+            onPress={() => router.push('/legal/privacy-policy' as any)}
+            colors={colors}
+            styles={styles}
+          />
+          <MenuItem
+            icon={<Scale color={colors.primary} size={20} />}
+            title={t('Terms & Conditions')}
+            onPress={() => router.push('/legal/terms' as any)}
+            colors={colors}
+            styles={styles}
+          />
+          <MenuItem
+            icon={<FileText color={colors.primary} size={20} />}
+            title={t('Cookie Policy')}
+            onPress={() => router.push('/legal/cookie-policy' as any)}
+            colors={colors}
+            styles={styles}
+          />
+          <MenuItem
+            icon={<FileText color={colors.primary} size={20} />}
+            title={t('Responsible Lending')}
+            onPress={() => router.push('/legal/responsible-lending' as any)}
+            colors={colors}
+            styles={styles}
+          />
+          <MenuItem
+            icon={<Settings color={colors.primary} size={20} />}
+            title={t('Account Deletion')}
+            subtitle={t('Permanently delete your account and data')}
+            onPress={() => router.push('/settings' as any)}
+            colors={colors}
+            styles={styles}
+          />
+          <MenuItem
+            icon={<HeartHandshake color={colors.primary} size={20} />}
+            title={t('Grievance Redressal')}
+            onPress={() => router.push('/raise-complaint' as any)}
+            isLast
+            colors={colors}
+            styles={styles}
+          />
+        </View>
+
+        {/* ABOUT */}
+        <View style={styles.menuContainer}>
+          <Text style={styles.menuSectionTitle}>{t('ABOUT')}</Text>
+          <MenuItem
+            icon={<Info color={colors.primary} size={20} />}
+            title={t('About Udofin')}
+            subtitle={t('Our mission, team, and contact')}
+            onPress={() => router.push('/about' as any)}
+            isLast
+            colors={colors}
+            styles={styles}
+          />
+        </View>
+
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
           <LogOut color={colors.danger} size={20} />
@@ -185,13 +272,16 @@ export default function ProfileScreen() {
   );
 }
 
-// Sub component
-function MenuItem({ icon, title, onPress, isLast, colors, styles }: any) {
+// Sub component — supports optional subtitle line
+function MenuItem({ icon, title, subtitle, onPress, isLast, colors, styles }: any) {
   return (
     <TouchableOpacity style={[styles.menuItem, isLast && styles.menuItemLast]} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.menuLeft}>
         <View style={styles.menuIconWrapper}>{icon}</View>
-        <Text style={styles.menuTitle}>{title}</Text>
+        <View>
+          <Text style={styles.menuTitle}>{title}</Text>
+          {subtitle ? <Text style={styles.menuSubtitle}>{subtitle}</Text> : null}
+        </View>
       </View>
       <ChevronRight color={colors.textMuted} size={18} />
     </TouchableOpacity>
@@ -300,6 +390,12 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     fontWeight: '700',
+  },
+  menuSubtitle: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontWeight: '500',
+    marginTop: 2,
   },
   logoutBtn: {
     flexDirection: 'row',
