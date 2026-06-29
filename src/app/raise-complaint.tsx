@@ -1,14 +1,14 @@
+import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
+import { Mail, Paperclip, Phone, Shield, Trash2, User } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../components/Button';
 import Header from '../components/Header';
 import { useTranslation } from '../lib/i18n';
 import { useTheme } from '../lib/theme';
 import { useLoanStore } from '../store/loanStore';
-import { Shield, Phone, Mail, User, Trash2, Paperclip } from 'lucide-react-native';
-import * as DocumentPicker from 'expo-document-picker';
 
 export default function RaiseComplaintScreen() {
   const router = useRouter();
@@ -30,6 +30,19 @@ export default function RaiseComplaintScreen() {
   const [attaching, setAttaching] = useState(false);
   const [attachment, setAttachment] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
 
+  const showAlert = (title: string, message: string, onPress?: () => void) => {
+    if (Platform.OS === 'web') {
+      alert(`${title}\n\n${message}`);
+      if (onPress) onPress();
+    } else {
+      Alert.alert(
+        title,
+        message,
+        onPress ? [{ text: t('OK'), onPress }] : undefined
+      );
+    }
+  };
+
   const handlePickDocument = async () => {
     try {
       setAttaching(true);
@@ -42,7 +55,7 @@ export default function RaiseComplaintScreen() {
         setAttachment(result.assets[0]);
       }
     } catch (error) {
-      Alert.alert(t('Selection Failed'), t('Could not open document picker.'));
+      showAlert(t('Selection Failed'), t('Could not open document picker.'));
     } finally {
       setAttaching(false);
     }
@@ -50,7 +63,7 @@ export default function RaiseComplaintScreen() {
 
   const handleSubmit = () => {
     if (description.trim().length < 10) {
-      Alert.alert(t('Details Required'), t('Please provide a clear description of at least 10 characters.'));
+      showAlert(t('Details Required'), t('Please provide a clear description of at least 10 characters.'));
       return;
     }
 
@@ -61,15 +74,10 @@ export default function RaiseComplaintScreen() {
       attachment?.uri || undefined
     );
     
-    Alert.alert(
+    showAlert(
       t('Complaint Raised'),
       t('Your grievance ticket {{id}} has been successfully created. We will update you shortly.').replace('{{id}}', tktId),
-      [
-        {
-          text: t('OK'),
-          onPress: () => router.back(),
-        }
-      ]
+      () => router.back()
     );
   };
 

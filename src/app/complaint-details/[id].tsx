@@ -1,8 +1,8 @@
 import { useLocalSearchParams } from 'expo-router';
-import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Linking } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Clock, ExternalLink, Paperclip, Shield } from 'lucide-react-native';
+import React from 'react';
+import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '../../components/FeedbackStates';
 import Header from '../../components/Header';
 import ProfileCard from '../../components/ProfileCard';
@@ -10,7 +10,6 @@ import StatusBadge from '../../components/StatusBadge';
 import { useTranslation } from '../../lib/i18n';
 import { useTheme } from '../../lib/theme';
 import { useLoanStore } from '../../store/loanStore';
-;
 
 export default function ComplaintDetailsScreen() {
   const { id } = useLocalSearchParams();

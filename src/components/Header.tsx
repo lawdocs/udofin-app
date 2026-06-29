@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
@@ -33,7 +34,7 @@ export default function Header({ title, showBack = true, onBackPress, rightEleme
       ) : (
         <View style={styles.placeholder} />
       )}
-      
+
       <Text style={styles.title} numberOfLines={1}>
         {title}
       </Text>
