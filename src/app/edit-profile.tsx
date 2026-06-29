@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';;
 import { useRouter } from 'expo-router';
 import Header from '../components/Header';
@@ -98,91 +98,96 @@ export default function EditProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header title={t("Edit Profile Details")} />
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <Header title={t("Edit Profile Details")} />
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
 
-        <Text style={styles.sectionTitle}>{t("PERSONAL DETAILS")}</Text>
+          <Text style={styles.sectionTitle}>{t("PERSONAL DETAILS")}</Text>
 
-        <View style={styles.formGroup}>
-          <Text style={styles.inputLabel}>{t("FULL NAME")}</Text>
-          <TextInput
-            style={styles.textInput}
-            value={name}
-            onChangeText={setName}
-            placeholder={t("Enter your full name")}
-            placeholderTextColor={colors.textMuted}
-          />
+          <View style={styles.formGroup}>
+            <Text style={styles.inputLabel}>{t("FULL NAME")}</Text>
+            <TextInput
+              style={styles.textInput}
+              value={name}
+              onChangeText={setName}
+              placeholder={t("Enter your full name")}
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+
+          {/* Primary mobile — read-only, changed via Change Mobile screen */}
+          <View style={styles.formGroup}>
+            <Text style={styles.inputLabel}>{t("PRIMARY MOBILE (LOGIN)")}</Text>
+            <TextInput
+              style={[styles.textInput, styles.disabledInput]}
+              value={phone}
+              editable={false}
+              placeholderTextColor={colors.textMuted}
+            />
+            <Text style={styles.fieldHint}>{t("To change this, go to Security → Change Mobile Number")}</Text>
+          </View>
+
+          {/* Secondary contact number */}
+          <View style={styles.formGroup}>
+            <Text style={styles.inputLabel}>{t("SECONDARY CONTACT NUMBER")}</Text>
+            <TextInput
+              style={styles.textInput}
+              value={secondaryPhone}
+              onChangeText={setSecondaryPhone}
+              placeholder="+91 XXXXX XXXXX"
+              keyboardType="phone-pad"
+              maxLength={13}
+              placeholderTextColor={colors.textMuted}
+            />
+            <Text style={styles.fieldHint}>{t("Optional — not used for login or OTP")}</Text>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.inputLabel}>{t("EMAIL ADDRESS")}</Text>
+            <TextInput
+              style={styles.textInput}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholder="your@email.com"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+
+          <Text style={styles.sectionTitle}>{t("EMPLOYER DETAILS")}</Text>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.inputLabel}>{t("CURRENT COMPANY")}</Text>
+            <TextInput
+              style={styles.textInput}
+              value={company}
+              onChangeText={setCompany}
+              placeholder={t("Company name")}
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.inputLabel}>{t("OFFICIAL DESIGNATION")}</Text>
+            <TextInput
+              style={styles.textInput}
+              value={designation}
+              onChangeText={setDesignation}
+              placeholder={t("Your role / designation")}
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <Button title={saving ? t('Saving...') : t('Save Updates')} onPress={handleSave} />
         </View>
-
-        {/* Primary mobile — read-only, changed via Change Mobile screen */}
-        <View style={styles.formGroup}>
-          <Text style={styles.inputLabel}>{t("PRIMARY MOBILE (LOGIN)")}</Text>
-          <TextInput
-            style={[styles.textInput, styles.disabledInput]}
-            value={phone}
-            editable={false}
-            placeholderTextColor={colors.textMuted}
-          />
-          <Text style={styles.fieldHint}>{t("To change this, go to Security → Change Mobile Number")}</Text>
-        </View>
-
-        {/* Secondary contact number */}
-        <View style={styles.formGroup}>
-          <Text style={styles.inputLabel}>{t("SECONDARY CONTACT NUMBER")}</Text>
-          <TextInput
-            style={styles.textInput}
-            value={secondaryPhone}
-            onChangeText={setSecondaryPhone}
-            placeholder="+91 XXXXX XXXXX"
-            keyboardType="phone-pad"
-            maxLength={13}
-            placeholderTextColor={colors.textMuted}
-          />
-          <Text style={styles.fieldHint}>{t("Optional — not used for login or OTP")}</Text>
-        </View>
-
-        <View style={styles.formGroup}>
-          <Text style={styles.inputLabel}>{t("EMAIL ADDRESS")}</Text>
-          <TextInput
-            style={styles.textInput}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            placeholder="your@email.com"
-            placeholderTextColor={colors.textMuted}
-          />
-        </View>
-
-        <Text style={styles.sectionTitle}>{t("EMPLOYER DETAILS")}</Text>
-
-        <View style={styles.formGroup}>
-          <Text style={styles.inputLabel}>{t("CURRENT COMPANY")}</Text>
-          <TextInput
-            style={styles.textInput}
-            value={company}
-            onChangeText={setCompany}
-            placeholder={t("Company name")}
-            placeholderTextColor={colors.textMuted}
-          />
-        </View>
-
-        <View style={styles.formGroup}>
-          <Text style={styles.inputLabel}>{t("OFFICIAL DESIGNATION")}</Text>
-          <TextInput
-            style={styles.textInput}
-            value={designation}
-            onChangeText={setDesignation}
-            placeholder={t("Your role / designation")}
-            placeholderTextColor={colors.textMuted}
-          />
-        </View>
-
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <Button title={saving ? t('Saving...') : t('Save Updates')} onPress={handleSave} />
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
