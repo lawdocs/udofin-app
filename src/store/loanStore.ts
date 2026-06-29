@@ -71,6 +71,9 @@ export interface SupportComplaint {
   status: 'open' | 'in_progress' | 'resolved';
   date: string;
   notes?: string;
+  lenderName?: string;
+  attachmentName?: string;
+  attachmentUri?: string;
 }
 
 export interface NotificationItem {
@@ -82,6 +85,15 @@ export interface NotificationItem {
   read: boolean;
 }
 
+export interface ConsentLog {
+  id: string;
+  timestamp: string;
+  action: 'granted' | 'revoked';
+  consentType: 'sms' | 'location' | 'notifications';
+  token: string;
+  ip: string;
+}
+
 interface LoanStoreState {
   draftApplication: DraftApplication;
   applications: LoanApplication[];
@@ -89,6 +101,12 @@ interface LoanStoreState {
   complaints: SupportComplaint[];
   notifications: NotificationItem[];
   offers: Record<string, LenderOffer[]>;
+  consents: {
+    sms: boolean;
+    location: boolean;
+    notifications: boolean;
+  };
+  consentHistory: ConsentLog[];
   
   setDraftApplication: (draft: Partial<DraftApplication>) => void;
   clearDraftApplication: () => void;
@@ -96,9 +114,11 @@ interface LoanStoreState {
   updateApplicationStatus: (id: string, status: LoanApplication['status']) => void;
   selectOffer: (appId: string, offerId: string, lenderName: string) => void;
   disburseLoan: (appId: string) => void;
-  addComplaint: (category: string, description: string) => string;
+  addComplaint: (category: string, description: string, attachmentName?: string, attachmentUri?: string) => string;
   markNotificationRead: (id: string) => void;
   payEmi: (emiId: string) => void;
+  updateConsent: (type: 'sms' | 'location' | 'notifications', value: boolean) => void;
+  clearStore: () => void;
 }
 
 const initialDraft: DraftApplication = {
@@ -126,6 +146,12 @@ export const useLoanStore = create<LoanStoreState>((set, get) => ({
   complaints: [],
   notifications: [],
   offers: {},
+  consents: {
+    sms: true,
+    location: true,
+    notifications: true,
+  },
+  consentHistory: [],
   
   setDraftApplication: (draft) => set((state) => ({
     draftApplication: { ...state.draftApplication, ...draft }
@@ -364,14 +390,19 @@ export const useLoanStore = create<LoanStoreState>((set, get) => ({
     };
   }),
   
-  addComplaint: (category, description) => {
+  addComplaint: (category, description, attachmentName, attachmentUri) => {
+    const activeLoan = get().activeLoan;
+    const lenderName = activeLoan?.lenderName;
     const id = `TKT-${Math.floor(10000 + Math.random() * 90000)}`;
     const newComplaint: SupportComplaint = {
       id,
       category,
       description,
       status: 'open',
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
+      lenderName,
+      attachmentName,
+      attachmentUri
     };
     
     set((state) => ({
@@ -499,5 +530,40 @@ export const useLoanStore = create<LoanStoreState>((set, get) => ({
         ...state.notifications
       ]
     };
+  }),
+
+  updateConsent: (type, value) => set((state) => {
+    const logId = `LOG-${Math.floor(100000 + Math.random() * 900000)}`;
+    const newLog: ConsentLog = {
+      id: logId,
+      timestamp: new Date().toISOString(),
+      action: value ? 'granted' : 'revoked',
+      consentType: type,
+      token: `UD-${Math.floor(100000 + Math.random() * 900000)}`,
+      ip: '192.168.1.51',
+    };
+
+    return {
+      consents: {
+        ...state.consents,
+        [type]: value,
+      },
+      consentHistory: [newLog, ...state.consentHistory],
+    };
+  }),
+
+  clearStore: () => set({
+    draftApplication: initialDraft,
+    applications: [],
+    activeLoan: null,
+    complaints: [],
+    notifications: [],
+    offers: {},
+    consents: {
+      sms: true,
+      location: true,
+      notifications: true,
+    },
+    consentHistory: [],
   })
 }));

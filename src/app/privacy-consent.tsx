@@ -1,20 +1,21 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch, Alert, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';;
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../components/Header';
-import { Shield, Eye, Lock, RefreshCw } from 'lucide-react-native';
+import { Shield, Eye, Lock, RefreshCw, Calendar, Info } from 'lucide-react-native';
 import { useTheme } from '../lib/theme';
 import { useTranslation } from '../lib/i18n';
+import { useLoanStore } from '../store/loanStore';
 
 export default function PrivacyConsentScreen() {
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const { t } = useTranslation();
-
-  // DPDP Consent permissions
-  const [smsConsent, setSmsConsent] = useState(true);
-  const [locationConsent, setLocationConsent] = useState(true);
-  const [notificationConsent, setNotificationConsent] = useState(true);
+  const { consents, consentHistory, updateConsent } = useLoanStore();
+  
+  const smsConsent = consents.sms;
+  const locationConsent = consents.location;
+  const notificationConsent = consents.notifications;
 
   const handleSmsToggle = (value: boolean) => {
     if (!value) {
@@ -22,12 +23,12 @@ export default function PrivacyConsentScreen() {
         t('Revoke SMS Consent?'),
         t('WARNING: Revoking SMS access will prevent our automated underwriting engine from evaluating credit limits, resulting in a potential reduction of matching lender offers.'),
         [
-          { text: t('Cancel'), style: 'cancel', onPress: () => setSmsConsent(true) },
-          { text: t('Revoke Anyway'), onPress: () => setSmsConsent(false) },
+          { text: t('Cancel'), style: 'cancel' },
+          { text: t('Revoke Anyway'), onPress: () => updateConsent('sms', false) },
         ]
       );
     } else {
-      setSmsConsent(true);
+      updateConsent('sms', true);
     }
   };
 
@@ -37,13 +38,17 @@ export default function PrivacyConsentScreen() {
         t('Revoke Location Consent?'),
         t('Revoking location permissions may require you to upload additional physical address proofs (e.g. rent agreement or utility bills) to satisfy KYC rules.'),
         [
-          { text: t('Cancel'), style: 'cancel', onPress: () => setLocationConsent(true) },
-          { text: t('Revoke Anyway'), onPress: () => setLocationConsent(false) },
+          { text: t('Cancel'), style: 'cancel' },
+          { text: t('Revoke Anyway'), onPress: () => updateConsent('location', false) },
         ]
       );
     } else {
-      setLocationConsent(true);
+      updateConsent('location', true);
     }
+  };
+
+  const handleNotificationToggle = (value: boolean) => {
+    updateConsent('notifications', value);
   };
 
   return (
@@ -110,7 +115,7 @@ export default function PrivacyConsentScreen() {
             </View>
             <Switch
               value={notificationConsent}
-              onValueChange={setNotificationConsent}
+              onValueChange={handleNotificationToggle}
               trackColor={{ false: colors.surfaceBorder, true: colors.primaryBorder }}
               thumbColor={notificationConsent ? colors.primary : colors.surface}
             />
@@ -130,16 +135,76 @@ export default function PrivacyConsentScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.logText}>
-          {t("Last consent log update: Today, {{time}}. Shared securely under token #UD-{{token}}.")
-            .replace('{{time}}', new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }))
-            .replace('{{token}}', String(Math.floor(100000 + Math.random() * 900000)))}
-        </Text>
+        <Text style={styles.sectionTitle}>{t("CONSENT AUDIT LEDGER")}</Text>
+        <View style={styles.card}>
+          {consentHistory.length === 0 ? (
+            <View style={styles.emptyLog}>
+              <Info color="#9CA3AF" size={16} />
+              <Text style={styles.emptyLogText}>{t("No consent changes logged yet.")}</Text>
+            </View>
+          ) : (
+            consentHistory.map((log, index) => (
+              <View key={log.id}>
+                {index > 0 && <View style={styles.divider} />}
+                <View style={styles.logItem}>
+                  <View style={styles.logRow}>
+                    <Text style={styles.logConsentTitle}>
+                      {getConsentLabel(log.consentType)}
+                    </Text>
+                    <View
+                      style={[
+                        styles.badge,
+                        log.action === 'granted' ? styles.badgeSuccess : styles.badgeDanger,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.badgeText,
+                          log.action === 'granted' ? styles.badgeTextSuccess : styles.badgeTextDanger,
+                        ]}
+                      >
+                        {log.action.toUpperCase()}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.logMetaRow}>
+                    <Calendar color="#9CA3AF" size={12} />
+                    <Text style={styles.logMetaText}>{formatLogDate(log.timestamp)}</Text>
+                    <Text style={styles.logMetaText}>•</Text>
+                    <Text style={styles.logMetaText}>{t("Token")}: #{log.token}</Text>
+                    <Text style={styles.logMetaText}>•</Text>
+                    <Text style={styles.logMetaText}>IP: {log.ip}</Text>
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
 
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const formatLogDate = (isoStr: string) => {
+  const d = new Date(isoStr);
+  return d.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+};
+
+const getConsentLabel = (type: string) => {
+  switch (type) {
+    case 'sms': return 'Financial SMS Access';
+    case 'location': return 'GPS Proximity';
+    case 'notifications': return 'Push Notification Alerts';
+    default: return type;
+  }
+};
 
 const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
@@ -231,5 +296,63 @@ const getStyles = (colors: any) => StyleSheet.create({
     lineHeight: 16,
     marginTop: 10,
     marginBottom: 20,
+  },
+  emptyLog: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 20,
+  },
+  emptyLogText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontWeight: '600',
+  },
+  logItem: {
+    paddingVertical: 12,
+  },
+  logRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  logConsentTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  badgeSuccess: {
+    backgroundColor: '#DEF7EC',
+  },
+  badgeDanger: {
+    backgroundColor: '#FDE8E8',
+  },
+  badgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  badgeTextSuccess: {
+    color: '#03543F',
+  },
+  badgeTextDanger: {
+    color: '#9B1C1C',
+  },
+  logMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  logMetaText: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '600',
   },
 });

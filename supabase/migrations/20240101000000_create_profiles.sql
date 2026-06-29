@@ -21,6 +21,9 @@ create policy "Users can insert their own profile." on profiles
 create policy "Users can update own profile." on profiles
   for update using (auth.uid() = id);
 
+create policy "Users can delete own profile." on profiles
+  for delete using (auth.uid() = id);
+
 -- Set up a trigger to automatically create a profile when a new user signs up
 create or replace function public.handle_new_user()
 returns trigger as $$

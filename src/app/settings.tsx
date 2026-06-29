@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Alert, Ac
 import { SafeAreaView } from 'react-native-safe-area-context';;
 import { useRouter } from 'expo-router';
 import Header from '../components/Header';
+import { useLoanStore } from '../store/loanStore';
 import { supabase } from '../lib/supabase';
 import { ChevronRight, Trash2, Globe, Moon } from 'lucide-react-native';
 import { useTranslation } from '../lib/i18n';
@@ -20,8 +21,9 @@ export default function SettingsScreen() {
   const { colors, setThemePreference } = useTheme();
   const styles = getStyles(colors);
   
-  // Also get the setter from the store
   const setLanguageGlobal = useOnboardingStore((state) => state.setLanguage);
+  const { clearState: clearOnboarding } = useOnboardingStore();
+  const { activeLoan, clearStore } = useLoanStore();
 
   // Toggle states — loaded from Supabase
   const [pushEnabled, setPushEnabled] = useState(true);
@@ -31,6 +33,7 @@ export default function SettingsScreen() {
   const [theme, setTheme] = useState('System');
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+
 
   // Load settings from Supabase on mount
   useEffect(() => {
@@ -111,19 +114,47 @@ export default function SettingsScreen() {
     persistSetting('theme', next);
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    clearOnboarding();
+    clearStore();
+    router.replace('/');
+  };
+
   const handleDeleteAccount = () => {
+    // 1. Verify if user has an active loan with outstanding amount
+    if (activeLoan && activeLoan.outstandingAmount > 0) {
+      Alert.alert(
+        'Deletion Blocked',
+        `You have an active loan of ₹${activeLoan.outstandingAmount.toLocaleString('en-IN')} with ${activeLoan.lenderName}. Under the DPDP Act, 2023 and RBI regulations, your personal data cannot be erased while you have active credit obligations. Please repay all outstanding dues before requesting account deletion.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    // 2. No active loan, proceed with confirmation dialog
     Alert.alert(
       t('Delete Account'),
       t('WARNING: This action is permanent. All active records and consent parameters will be purged in compliance with DPDP data erasing rules. Do you want to proceed?'),
       [
         { text: t('Cancel'), style: 'cancel' },
-        {
-          text: t('Delete Permanently'),
+        { 
+          text: t('Delete Permanently'), 
           style: 'destructive',
           onPress: async () => {
-            await supabase.auth.signOut();
-            Alert.alert(t('Purge Initiated'), t('Your account data has been queued for permanent deletion.'));
-            router.replace('/');
+            try {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                await supabase.from('profiles').delete().eq('id', user.id);
+              }
+              await supabase.auth.signOut();
+              clearOnboarding();
+              clearStore();
+              Alert.alert(t('Purge Initiated'), t('Your account data has been completely erased.'));
+              router.replace('/');
+            } catch {
+              Alert.alert(t('Deletion Failed'), t('Failed to request account deletion. Please try again.'));
+            }
           }
         }
       ]
