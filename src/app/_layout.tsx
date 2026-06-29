@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { ActivityIndicator, View } from 'react-native';
 import { useTheme } from '../lib/theme';
+import { useAuthStore } from '../store/authStore';
 
 const queryClient = new QueryClient();
 
@@ -12,80 +13,63 @@ function InitialLayout() {
   const router = useRouter();
   const segments = useSegments();
   const [initializing, setInitializing] = useState(true);
+  const [initialRoute, setInitialRoute] = useState<string | null>(null);
 
+  const { isAppLocked } = useAuthStore();
+
+  // 1. One-time Initialization
   useEffect(() => {
     let mounted = true;
 
-    const checkSession = async () => {
+    const initAuth = async () => {
+      console.log("[initAuth] Starting...");
       try {
+        console.log("[initAuth] Fetching session...");
         const { data: { session } } = await supabase.auth.getSession();
+        console.log("[initAuth] Session fetched:", !!session);
         if (!mounted) return;
 
         if (session) {
-          // Check profile for onboarding completion AND biometrics preference
+          console.log("[initAuth] Fetching profile for user:", session.user.id);
           const { data: profile } = await supabase
             .from('profiles')
-            .select('pin, biometrics_enabled')
+            .select('pin')
             .eq('id', session.user.id)
             .single();
+          console.log("[initAuth] Profile fetched, hasPin:", !!profile?.pin);
 
           if (!mounted) return;
-
-          const inTabs = segments[0] === '(tabs)';
-          const onBiometricLock = segments[0] === 'biometric-lock';
-          const onAuthPage = !segments.length || (segments[0] as string) === 'index' || (segments[0] as string) === 'onboarding';
-
-          if (profile?.pin) {
-            // Onboarding complete — always require lock screen for existing users
-            if (onAuthPage) {
-              router.replace('/biometric-lock');
-            }
-          } else if (!profile?.pin && inTabs) {
-            // Onboarding not complete but somehow in tabs — send back
-            router.replace('/');
+          
+          const hasPin = !!profile?.pin;
+          
+          if (hasPin && isAppLocked) {
+            setInitialRoute('/biometric-lock');
+          } else if (!hasPin) {
+            // Not fully onboarded
+            setInitialRoute('/');
           }
         } else {
-          // No session — ensure they can't access protected routes
-          const inTabs = segments[0] === '(tabs)';
-          const isProtected = inTabs || segments[0] === 'edit-profile' || segments[0] === 'settings' || segments[0] === 'documents' || segments[0] === 'privacy-consent' || segments[0] === 'change-mobile' || segments[0] === 'change-pin' || segments[0] === 'change-password' || segments[0] === 'support';
-          if (isProtected) {
-            router.replace('/');
-          }
+           setInitialRoute('/');
         }
-      } catch (error) {
-        console.error("Auth check failed:", error);
+      } catch (e) {
+        console.error("[initAuth] Error:", e);
       } finally {
+        console.log("[initAuth] Finally block reached. Setting initializing to false.");
         if (mounted) setInitializing(false);
       }
     };
-
-    checkSession();
+    
+    initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
-
-      const inTabs = segments[0] === '(tabs)';
-      const onAuthPage = !segments.length || (segments[0] as string) === 'index' || (segments[0] as string) === 'onboarding';
-
-      if (session) {
-        // Query profile to see if onboarding was completed
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('pin, biometrics_enabled')
-          .eq('id', session.user.id)
-          .single();
-
-        if (!mounted) return;
-
-        if (profile?.pin && onAuthPage) {
-          router.replace('/biometric-lock');
-        }
-      } else {
-        // Logged out
-        const isProtected = inTabs || segments[0] === 'edit-profile' || segments[0] === 'settings' || segments[0] === 'documents' || segments[0] === 'privacy-consent' || segments[0] === 'change-mobile' || segments[0] === 'change-pin' || segments[0] === 'change-password' || segments[0] === 'support';
-        if (isProtected) {
-          router.replace('/');
-        }
+      if (event === 'SIGNED_IN' && session) {
+         const { data: profile } = await supabase.from('profiles').select('pin').eq('id', session.user.id).single();
+         if (profile?.pin && isAppLocked) {
+            router.replace('/biometric-lock');
+         }
+      } else if (event === 'SIGNED_OUT') {
+         router.replace('/');
       }
     });
 
@@ -93,7 +77,32 @@ function InitialLayout() {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [segments]);
+  }, []);
+
+  // 2. Continuous Route Protection
+  useEffect(() => {
+    if (initializing) return;
+
+    if (initialRoute) {
+       router.replace(initialRoute as any);
+       setInitialRoute(null);
+       return;
+    }
+
+    const checkRoute = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const inTabs = segments[0] === '(tabs)';
+      const isProtected = inTabs || ['edit-profile', 'settings', 'documents', 'privacy-consent', 'change-mobile', 'change-pin', 'change-password', 'support', 'biometric-lock'].includes(segments[0] as string);
+      
+      if (!session && isProtected) {
+        router.replace('/');
+      } else if (session && isAppLocked && segments[0] !== 'biometric-lock') {
+        router.replace('/biometric-lock');
+      }
+    };
+    
+    checkRoute();
+  }, [segments, initializing, isAppLocked, initialRoute]);
 
   const { colors } = useTheme();
 

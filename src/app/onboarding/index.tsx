@@ -2,8 +2,10 @@ import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, TextInput, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';;
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Check } from 'lucide-react-native';
+import { ChevronLeft, Check, FingerprintPattern } from 'lucide-react-native';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { useOnboardingStore } from '../../store/onboardingStore';
+import { useAuthStore } from '../../store/authStore';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../lib/theme';
 import { useTranslation } from '../../lib/i18n';
@@ -13,8 +15,10 @@ export default function OnboardingWizard() {
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const { t } = useTranslation();
+  const { setAppLocked } = useAuthStore();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [biometricType, setBiometricType] = useState<'fingerprint' | 'face' | 'none'>('none');
   
   const { 
     language, setLanguage, 
@@ -232,7 +236,7 @@ export default function OnboardingWizard() {
           
           if (profile?.pin) {
             // Returning user - they already have a PIN!
-            router.replace('/(tabs)/home');
+            router.replace('/biometric-lock');
             return;
           }
         } else {
@@ -320,12 +324,36 @@ export default function OnboardingWizard() {
         setLoading(false);
       }
       
-      // Flow complete, go to tabs home
+      // Check if device supports biometrics
+      const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
+      if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+        setBiometricType('face');
+        setStep(5);
+        return;
+      } else if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+        setBiometricType('fingerprint');
+        setStep(5);
+        return;
+      }
+      
+      // No biometrics supported, flow complete
+      setAppLocked(false);
       router.replace('/(tabs)/home');
       return;
     }
 
-    if (step < 4) {
+    if (step === 5) {
+      setLoading(true);
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user) {
+         await supabase.from('profiles').update({ biometrics_enabled: true }).eq('id', userData.user.id);
+      }
+      setAppLocked(false);
+      router.replace('/(tabs)/home');
+      return;
+    }
+
+    if (step < 5) {
       setStep(step + 1);
     }
   };
@@ -538,6 +566,21 @@ export default function OnboardingWizard() {
     </View>
   );
 
+  const renderStep5 = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>{t("Enable Biometrics")}</Text>
+      <Text style={styles.stepSubtitle}>
+        {t("Use")} {biometricType === 'face' ? t('Face ID') : t('Fingerprint')} {t("to unlock your app securely and instantly.")}
+      </Text>
+      
+      <View style={{ alignItems: 'center', marginTop: 40, marginBottom: 40 }}>
+        <View style={styles.iconCircle}>
+          <FingerprintPattern color={colors.primary} size={64} />
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
@@ -545,9 +588,9 @@ export default function OnboardingWizard() {
           <ChevronLeft color="#333" size={24} />
         </TouchableOpacity>
         <View style={styles.progressContainer}>
-          <View style={[styles.progressBar, { width: `${(step / 4) * 100}%` }]} />
+          <View style={[styles.progressBar, { width: `${(step / 5) * 100}%` }]} />
         </View>
-        <Text style={styles.stepIndicator}>{step} / 4</Text>
+        <Text style={styles.stepIndicator}>{step} / 5</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -555,6 +598,7 @@ export default function OnboardingWizard() {
         {step === 2 && renderStep2()}
         {step === 3 && renderStep3()}
         {step === 4 && renderStep4()}
+        {step === 5 && renderStep5()}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -568,7 +612,9 @@ export default function OnboardingWizard() {
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text style={styles.primaryButtonText}>
-              {step === 4 
+              {step === 5
+                ? t('Enable') + ' ' + (biometricType === 'face' ? t('Face ID') : t('Fingerprint'))
+                : step === 4 
                 ? t('Complete Setup') 
                 : step === 3 
                   ? (!otpSent ? t('Send OTP') : t('Verify Mobile'))
@@ -578,6 +624,24 @@ export default function OnboardingWizard() {
             </Text>
           )}
         </TouchableOpacity>
+
+        {step === 5 && (
+          <TouchableOpacity 
+            style={styles.textButton} 
+            onPress={async () => {
+               setLoading(true);
+               const { data: userData } = await supabase.auth.getUser();
+               if (userData?.user) {
+                  await supabase.from('profiles').update({ biometrics_enabled: false }).eq('id', userData.user.id);
+               }
+               setAppLocked(false);
+               router.replace('/(tabs)/home');
+            }}
+            disabled={loading}
+          >
+            <Text style={styles.textButtonText}>{t("Skip for now")}</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -837,5 +901,15 @@ const getStyles = (colors: any) => StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  iconCircle: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.surfaceBorder,
   },
 });

@@ -4,9 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';;
 import { useRouter } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { supabase } from '../lib/supabase';
-import { FingerprintPattern } from 'lucide-react-native';
+import { FingerprintPattern, Check } from 'lucide-react-native';
 import { useTheme } from '../lib/theme';
 import { useTranslation } from '../lib/i18n';
+import { useAuthStore } from '../store/authStore';
 
 type AuthState = 'idle' | 'authenticating' | 'failed';
 
@@ -15,10 +16,13 @@ export default function BiometricLockScreen() {
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const { t } = useTranslation();
+  const { setAppLocked } = useAuthStore();
 
   const [authState, setAuthState] = useState<AuthState>('idle');
   const [showPinFallback, setShowPinFallback] = useState(false);
   const [pinInput, setPinInput] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [biometricType, setBiometricType] = useState<'fingerprint' | 'face' | 'none'>('none');
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -57,6 +61,8 @@ export default function BiometricLockScreen() {
         console.error('[BiometricLock] Init error:', e);
         setBiometricType('none');
         setShowPinFallback(true);
+      } finally {
+        setIsLoading(false);
       }
     };
     initializeAuth();
@@ -89,12 +95,13 @@ export default function BiometricLockScreen() {
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: t('Unlock Udofin'),
         fallbackLabel: t('Use PIN Instead'),
-        disableDeviceFallback: false,
+        disableDeviceFallback: true,
         cancelLabel: t('Cancel'),
       });
 
       if (result.success) {
-        // Biometric passed — go to dashboard
+        // Biometric passed — unlock and go to dashboard
+        setAppLocked(false);
         router.replace('/(tabs)/home');
       } else {
         setAuthState('failed');
@@ -110,45 +117,52 @@ export default function BiometricLockScreen() {
     }
   };
 
-  // PIN fallback — verify PIN hash against stored value
-  const handlePinDigit = async (digit: string) => {
-    const next = pinInput + digit;
-    setPinInput(next);
+  // PIN fallback — handles manual digit entry
+  const handlePinDigit = (digit: string) => {
+    if (pinInput.length < 4) {
+      setPinInput(pinInput + digit);
+    }
+  };
 
-    if (next.length === 4) {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          Alert.alert(t('Session Error'), t('Please log in again.'));
-          router.replace('/');
-          return;
-        }
+  const handleSubmit = async () => {
+    if (pinInput.length !== 4 || verifying) return;
+    setVerifying(true);
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('pin')
-          .eq('id', user.id)
-          .single();
-
-        // Simple hash (same as in change-pin.tsx)
-        let hash = 0;
-        for (let i = 0; i < next.length; i++) {
-          hash = (hash * 31 + next.charCodeAt(i)) & 0xffffffff;
-        }
-        const enteredHash = Math.abs(hash).toString(16);
-
-        if (profile?.pin === enteredHash) {
-          // PIN correct — proceed to dashboard
-          router.replace('/(tabs)/home');
-        } else {
-          Alert.alert(t('Incorrect PIN'), t('Please try again.'), [
-            { text: t('OK'), onPress: () => setPinInput('') }
-          ]);
-        }
-      } catch (e) {
-        console.error('[BiometricLock] PIN check error:', e);
-        setPinInput('');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert(t('Session Error'), t('Please log in again.'));
+        router.replace('/');
+        return;
       }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('pin')
+        .eq('id', user.id)
+        .single();
+
+      // Simple hash (same as in change-pin.tsx)
+      let hash = 0;
+      for (let i = 0; i < pinInput.length; i++) {
+        hash = (hash * 31 + pinInput.charCodeAt(i)) & 0xffffffff;
+      }
+      const enteredHash = Math.abs(hash).toString(16);
+
+      if (profile?.pin === enteredHash) {
+        // PIN correct — unlock and proceed to dashboard
+        setAppLocked(false);
+        router.replace('/(tabs)/home');
+      } else {
+        Alert.alert(t('Incorrect PIN'), t('Please try again.'), [
+          { text: t('OK'), onPress: () => setPinInput('') }
+        ]);
+      }
+    } catch (e) {
+      console.error('[BiometricLock] PIN check error:', e);
+      setPinInput('');
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -157,6 +171,14 @@ export default function BiometricLockScreen() {
   };
 
   const biometricLabel = biometricType === 'face' ? t('Face ID') : t('Fingerprint');
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -215,17 +237,31 @@ export default function BiometricLockScreen() {
 
           {/* Number pad */}
           <View style={styles.numPad}>
-            {['1','2','3','4','5','6','7','8','9','','0','⌫'].map((key, idx) => (
-              key === '' ? <View key={idx} style={styles.numKey} /> : (
-                <TouchableOpacity
-                  key={idx}
-                  style={styles.numKey}
-                  onPress={() => key === '⌫' ? handleDelete() : handlePinDigit(key)}
-                  activeOpacity={0.7}
-                >
+            {['1','2','3','4','5','6','7','8','9','check','0','⌫'].map((key, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={[
+                  styles.numKey, 
+                  key === 'check' && { backgroundColor: pinInput.length === 4 ? colors.primary : colors.surfaceBorder }
+                ]}
+                onPress={() => {
+                  if (key === '⌫') handleDelete();
+                  else if (key === 'check') handleSubmit();
+                  else handlePinDigit(key);
+                }}
+                disabled={(key === 'check' && pinInput.length !== 4) || verifying}
+                activeOpacity={0.7}
+              >
+                {key === 'check' ? (
+                  verifying ? (
+                    <ActivityIndicator color={pinInput.length === 4 ? '#FFFFFF' : colors.textMuted} size="small" />
+                  ) : (
+                    <Check color={pinInput.length === 4 ? '#FFFFFF' : colors.textMuted} size={28} />
+                  )
+                ) : (
                   <Text style={styles.numKeyText}>{key}</Text>
-                </TouchableOpacity>
-              )
+                )}
+              </TouchableOpacity>
             ))}
           </View>
 
