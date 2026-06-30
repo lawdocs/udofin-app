@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';;
 import { useRouter } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { supabase } from '../lib/supabase';
-import { FingerprintPattern, Check } from 'lucide-react-native';
+import { FingerprintPattern, Check, ScanFace } from 'lucide-react-native';
 import { useTheme } from '../lib/theme';
 import { useTranslation } from '../lib/i18n';
 import { useAuthStore } from '../store/authStore';
@@ -47,8 +47,23 @@ export default function BiometricLockScreen() {
           }
         }
 
+        // Critical: First verify the device actually has hardware & is enrolled
+        const hasHardware = await LocalAuthentication.hasHardwareAsync();
+        const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+        
+        console.log('[BiometricLock] hasHardware:', hasHardware, 'isEnrolled:', isEnrolled);
+        
+        if (!hasHardware || !isEnrolled) {
+          // Device can't do biometrics — go straight to PIN
+          console.log('[BiometricLock] No hardware or not enrolled, forcing PIN');
+          setBiometricType('none');
+          setShowPinFallback(true);
+          return;
+        }
+
         // If enabled, check device capabilities
         const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
+        console.log('[BiometricLock] Supported types:', types);
         if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
           setBiometricType('face');
         } else if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
@@ -104,9 +119,23 @@ export default function BiometricLockScreen() {
         setAppLocked(false);
         router.replace('/(tabs)/home');
       } else {
+        // Log exact error code so we can debug
+        console.log('[BiometricLock] Auth failed with error:', result.error);
         setAuthState('failed');
-        // If the user chose the native fallback label, show our PIN fallback
-        if (result.error === 'user_fallback' || result.error === 'system_cancel') {
+        // Auto-fallback to PIN for any cancel/fallback/permission error
+        // Cast to string to handle all error codes including undocumented ones (e.g. from Expo Go)
+        const errorCode = result.error as string;
+        if (
+          errorCode === 'user_fallback' ||
+          errorCode === 'system_cancel' ||
+          errorCode === 'user_cancel' ||
+          errorCode === 'app_cancel' ||
+          errorCode === 'not_available' ||
+          errorCode === 'not_enrolled' ||
+          errorCode === 'lockout' ||
+          errorCode === 'lockout_permanent' ||
+          errorCode === 'missing_usage_description' // Expo Go limitation — auto-fall to PIN
+        ) {
           setShowPinFallback(true);
         }
       }
@@ -199,7 +228,11 @@ export default function BiometricLockScreen() {
           {/* Animated icon */}
           <TouchableOpacity onPress={handleBiometricAuth} activeOpacity={0.8}>
             <Animated.View style={[styles.iconCircle, { transform: [{ scale: pulseAnim }] }]}>
-              <FingerprintPattern color={colors.primary} size={52} />
+              {biometricType === 'face' ? (
+                <ScanFace color={colors.primary} size={52} />
+              ) : (
+                <FingerprintPattern color={colors.primary} size={52} />
+              )}
             </Animated.View>
           </TouchableOpacity>
 
