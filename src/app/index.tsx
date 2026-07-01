@@ -78,7 +78,10 @@ const getStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 40,
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
     elevation: 2,
   },
   logoText: {
@@ -127,6 +130,5 @@ const getStyles = (colors: any) => StyleSheet.create({
     color: colors.primary,
     fontSize: 20,
     fontWeight: '700',
-    fontFamily: 'Outfit-Bold',
   }
 });

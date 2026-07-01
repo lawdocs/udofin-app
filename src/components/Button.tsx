@@ -75,8 +75,11 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   btnPrimary: {
     backgroundColor: colors.primary,
-    boxShadow: `0px 4px 8px ${colors.primary}33`,
-    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   btnSecondary: {
     backgroundColor: colors.primaryLight,
@@ -91,8 +94,11 @@ const getStyles = (colors: any) => StyleSheet.create({
   btnDisabled: {
     backgroundColor: colors.surfaceBorder,
     borderColor: colors.surfaceBorder,
-    boxShadow: 'none',
-    elevation: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   text: {
     fontSize: 16,

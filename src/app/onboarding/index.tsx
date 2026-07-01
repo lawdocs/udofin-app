@@ -908,7 +908,10 @@ const getStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 18,
     borderRadius: 9999,
     alignItems: 'center',
-    boxShadow: `0px 4px 8px ${colors.primary}4D`,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
     elevation: 4,
   },
   primaryButtonText: {

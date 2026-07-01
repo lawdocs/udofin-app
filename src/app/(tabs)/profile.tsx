@@ -304,8 +304,11 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.surfaceBorder,
     marginBottom: 24,
-    boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.02)',
-    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   avatar: {
     width: 80,

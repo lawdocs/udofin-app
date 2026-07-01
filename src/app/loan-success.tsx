@@ -95,8 +95,11 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     width: '100%',
-    boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 5,
   },
   row: {
     flexDirection: 'row',

@@ -3,8 +3,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL as string;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY as string;
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+
+// Warn loudly in dev if env vars are missing — but do NOT throw at module level.
+// A top-level throw crashes the JS engine before any error boundary can catch it.
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error(
+    '[Udofin] Supabase environment variables are missing. ' +
+    'Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in your .env or EAS environment.'
+  );
+}
 
 // Safe storage wrapper to prevent crashes if native module is not built
 class SafeStorage {

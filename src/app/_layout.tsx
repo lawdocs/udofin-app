@@ -63,13 +63,18 @@ function InitialLayout() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
-      if (event === 'SIGNED_IN' && session) {
-         const { data: profile } = await supabase.from('profiles').select('pin').eq('id', session.user.id).single();
-         if (profile?.pin && isAppLocked) {
+      try {
+        if (event === 'SIGNED_IN' && session) {
+          const { data: profile } = await supabase.from('profiles').select('pin').eq('id', session.user.id).single();
+          if (profile?.pin && isAppLocked) {
             router.replace('/biometric-lock');
-         }
-      } else if (event === 'SIGNED_OUT') {
-         router.replace('/');
+          }
+        } else if (event === 'SIGNED_OUT') {
+          router.replace('/');
+        }
+      } catch (e) {
+        // Do not crash the app on auth state change errors — silently log
+        console.error('[onAuthStateChange] Error handling auth event:', event, e);
       }
     });
 

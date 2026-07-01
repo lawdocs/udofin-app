@@ -442,7 +442,10 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   themeToggleButtonActive: {
     backgroundColor: colors.surface,
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
     elevation: 2,
   },
   themeToggleText: {
